@@ -1,15 +1,27 @@
 package sedotan
 
 import (
+	"bytes"
 	"fmt"
-	//gq "github.com/PuerkitoBio/goquery"
+	gq "github.com/PuerkitoBio/goquery"
 	"github.com/eaciit/toolkit"
 	"net/http"
+	"strings"
 	"time"
 )
 
+type GrabColumn struct {
+	Alias     string
+	Selector  string
+	ValueType string //-- Text, Attr, InnerHtml, OuterHtml
+	AttrName  string
+}
+
 type GrabConfig struct {
-	Data         toolkit.M
+	Data           toolkit.M
+	RowSelector    string
+	ColumnSettings []*GrabColumn
+
 	AuthType     string
 	AuthUserId   string
 	AuthPassword string
@@ -34,12 +46,23 @@ func NewGrabber(url string, calltype string, config *GrabConfig) *Grabber {
 		config = new(GrabConfig)
 	}
 	g.Config = config
-	g.bodyByte = []byte{}
+	//g.bodyByte = []byte{}
 	return g
 }
 
 func (g *Grabber) Data() interface{} {
 	return nil
+}
+
+func (g *Grabber) Column(i int, column *GrabColumn) *GrabColumn {
+	if i == 0 {
+		g.Config.ColumnSettings = append(g.Config.ColumnSettings, column)
+	} else if i <= len(g.Config.ColumnSettings) {
+		g.Config.ColumnSettings[i-1] = column
+	} else {
+		return nil
+	}
+	return column
 }
 
 func (g *Grabber) DataByte() []byte {
@@ -75,15 +98,44 @@ func (g *Grabber) ResultString() string {
 	return string(g.bodyByte)
 }
 
-/*
-func (g *Grabber) ResultPart() (string, error){
-	s := g.ResultString()
-	doc, e := gq.NewDocument(s)
-	if e!=nil {
-		return "", e.Error()
+func (g *Grabber) ResultFromHtml(out interface{}) error {
+	//s := g.ResultString()
+	//-- read using jquery
+
+	reader := bytes.NewReader(g.bodyByte)
+	doc, e := gq.NewDocumentFromReader(reader)
+	if e != nil {
+		return e
 	}
 
-	f := doc.Find(".content")
-	retun f.First().Text(), nil
+	ms := []toolkit.M{}
+	records := doc.Find(g.Config.RowSelector)
+	recordCount := records.Length()
+	//fmt.Printf("Find: %d nodes\n", recordCount)
+	for i := 0; i < recordCount; i++ {
+		record := records.Eq(i)
+		m := toolkit.M{}
+		for cindex, c := range g.Config.ColumnSettings {
+			columnId := fmt.Sprintf("%s", cindex)
+			if c.Alias != "" {
+				columnId = c.Alias
+			}
+			sel := record.Find(c.Selector)
+			var value interface{}
+			valuetype := strings.ToLower(c.ValueType)
+			if valuetype == "attr" {
+				value, _ = sel.Attr(c.AttrName)
+			} else if valuetype == "html" {
+				value, _ = sel.Html()
+			} else {
+				value = sel.Text()
+			}
+			m.Set(columnId, value)
+		}
+		ms = append(ms, m)
+	}
+	if edecode := toolkit.Unjson(toolkit.Jsonify(ms), out); edecode != nil {
+		return edecode
+	}
+	return nil
 }
-*/
