@@ -17,8 +17,10 @@ type GrabColumn struct {
 	AttrName  string
 }
 
-type GrabConfig struct {
+type Config struct {
 	Data           toolkit.M
+	URL            string
+	CallType       string
 	RowSelector    string
 	ColumnSettings []*GrabColumn
 
@@ -28,9 +30,7 @@ type GrabConfig struct {
 }
 
 type Grabber struct {
-	URL      string
-	CallType string
-	Config   *GrabConfig
+	Config
 
 	LastExecuted time.Time
 
@@ -38,14 +38,19 @@ type Grabber struct {
 	Response *http.Response
 }
 
-func NewGrabber(url string, calltype string, config *GrabConfig) *Grabber {
+func NewGrabber(url string, calltype string, config *Config) *Grabber {
 	g := new(Grabber)
-	g.URL = url
-	g.CallType = calltype
-	if config == nil {
-		config = new(GrabConfig)
+	if config != nil {
+		g.Config = *config
 	}
-	g.Config = config
+
+	if url != "" {
+		g.URL = url
+	}
+
+	if calltype != "" {
+		g.CallType = calltype
+	}
 	//g.bodyByte = []byte{}
 	return g
 }

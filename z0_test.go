@@ -9,7 +9,7 @@ func TestGrab(t *testing.T) {
 	t.Skip()
 
 	url := "http://www.ariefdarmawan.com"
-	g := NewGrabber(url, "GET", nil)
+	g := NewGrabber(url, "GET", &Config{})
 	if e := g.Grab(nil); e != nil {
 		t.Errorf("Unable to grab %s. Error: %s", url, e.Error())
 		return
@@ -21,10 +21,8 @@ func TestGrab(t *testing.T) {
 func TestJQuery(t *testing.T) {
 	url := "http://www.ariefdarmawan.com"
 
-	cfg := new(GrabConfig)
-	cfg.RowSelector = "article"
-
-	g := NewGrabber(url, "GET", cfg)
+	g := NewGrabber(url, "GET", nil)
+	g.RowSelector = "article"
 	g.Column(0, &GrabColumn{Alias: "Title", Selector: "h1.entry-title"})
 	g.Column(0, &GrabColumn{Alias: "Excerpt", Selector: ".entry-content"})
 	if e := g.Grab(nil); e != nil {
@@ -41,6 +39,14 @@ func TestJQuery(t *testing.T) {
 	if e != nil {
 		t.Errorf("Unable to read: %s", e.Error())
 	}
-	fmt.Printf("Result:\n%v\n", docs)
-
+	fmt.Printf("Result:\n%s\n", func() string {
+		ret := ""
+		for _, doc := range docs {
+			ret += "# " + doc.Title + "\n" +
+				doc.Excerpt + "\n" +
+				"================================================================" +
+				"\n"
+		}
+		return ret
+	}())
 }
