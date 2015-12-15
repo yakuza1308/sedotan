@@ -55,12 +55,12 @@ func NewGrabber(url string, calltype string, config *Config) *Grabber {
 	if calltype != "" {
 		g.CallType = calltype
 	}
-
+	//g.bodyByte = []byte{}
 	return g
 }
 
-func (c *Config) setData(parm toolkit.M) {
-	c.Data = parm
+func (g *Grabber) Data() interface{} {
+	return nil
 }
 
 func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
@@ -74,9 +74,16 @@ func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
 	return column
 }
 
-func (g *Grabber) Data() interface{} {
-	return g.Config.Data
-}
+// func (g *Grabber) Column(i int, column *GrabColumn) *GrabColumn {
+// 	if i == 0 {
+// 		g.Config.ColumnSettings = append(g.Config.ColumnSettings, column)
+// 	} else if i <= len(g.Config.ColumnSettings) {
+// 		g.Config.ColumnSettings[i-1] = column
+// 	} else {
+// 		return nil
+// 	}
+// 	return column
+// }
 
 func (g *Grabber) DataByte() []byte {
 	d := g.Data()
@@ -87,10 +94,6 @@ func (g *Grabber) DataByte() []byte {
 }
 
 func (g *Grabber) Grab(parm toolkit.M) error {
-	if parm != nil {
-		g.Config.setData(parm)
-	}
-
 	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), nil)
 	errorTxt := ""
 	if e != nil {
