@@ -486,3 +486,18 @@ div.bordered {
 	padding: 0 0 5px 0;
 	text-align: center;
 }
+
+.align_right, .align-right
+{
+    text-align:right;
+}
+
+.align_center, .align-center
+{
+    text-align:center;
+}
+
+.align_left, .align-left
+{
+    text-align:left;
+}
