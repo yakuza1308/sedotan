@@ -22,6 +22,7 @@ type Config struct {
 	URL          string
 	CallType     string
 	DataSettings map[string]*DataSetting
+	FormValues   toolkit.M
 
 	AuthType     string
 	AuthUserId   string
@@ -60,8 +61,8 @@ func NewGrabber(url string, calltype string, config *Config) *Grabber {
 	return g
 }
 
-func (c *Config) setData(parm toolkit.M) {
-	c.Data = parm
+func (c *Config) SetFormValues(parm toolkit.M) {
+	c.FormValues = toolkit.M{}.Set("formvalues", parm)
 }
 
 func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
@@ -76,7 +77,7 @@ func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
 }
 
 func (g *Grabber) Data() interface{} {
-	return g.Config.Data
+	return nil
 }
 
 func (g *Grabber) DataByte() []byte {
@@ -88,11 +89,8 @@ func (g *Grabber) DataByte() []byte {
 }
 
 func (g *Grabber) Grab(parm toolkit.M) error {
-	if parm != nil {
-		g.Config.setData(parm)
-	}
 
-	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), nil)
+	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), g.Config.FormValues)
 	errorTxt := ""
 	if e != nil {
 		errorTxt = e.Error()
