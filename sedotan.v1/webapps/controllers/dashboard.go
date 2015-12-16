@@ -10,6 +10,7 @@ type DashboardController struct {
 
 func (a *DashboardController) Default(k *knot.WebContext) interface{} {
 	k.Config.OutputType = knot.OutputTemplate
+	k.WriteTemplate("sidebar.html")
 	return ""
 }
 

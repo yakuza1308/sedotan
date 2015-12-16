@@ -1,12 +1,263 @@
-<h1>Configuration</h1>
-<div class="row">
-	<div class="col-md-12">
-		Input URL
+<style>
+iframe{
+	border:1px solid #DDD;
+}
+#sidebar > .row{
+	margin-bottom: 5px;
+}
+#sidebar > .row > .col-md-5{
+	line-height: 25px;
+}
+
+#sidebar > .sidebar-section > .row{
+	margin-bottom: 5px;
+}
+#sidebar > .sidebar-section > .row > .col-md-5{
+	line-height: 25px;
+}
+
+.data-setting > .row{
+	margin-bottom: 5px;
+}
+.data-setting > .row > .col-md-5{
+	line-height: 25px;
+}
+
+</style>
+<h1>Configuration</h1><br/>
+<script type="text/javascript">
+	function ColumnBase(){
+		var self = this;
+		self.Index = ko.observable("");
+		self.Alias = ko.observable("");
+		self.Selector = ko.observable("");
+		return self;
+	}
+	function BaseData(){
+		var self = this;
+		self.Name = ko.observable("");
+		self.RowSelector = ko.observable("");
+		self.ColumnSettings = ko.observableArray([]);
+		self.DestType = ko.observable("csv");
+		return self;
+	}
+	var Config = {
+		isURLSet:ko.observable(false),
+		URL:ko.observable(""),
+		NameID:ko.observable(""),
+		SourceType:ko.observable("SourceType_Http"),
+		IntervalType:ko.observable("seconds"),
+		GrabInterval:ko.observable(0),
+		TimeoutInterval:ko.observable(0),
+		DataSetting:ko.observableArray([]),
+
+		// Data Source
+		IntervalList:ko.observableArray(["seconds","minutes","hours"]),
+		SourceTypeList:ko.observableArray(["SourceType_Http"]),
+		DestTypeList:ko.observableArray(["csv","mongodb"]),
+		// Process
+		ProcessNumber:ko.observable(1),
+		ProcessTotal:ko.observable(3),
+
+		// Data Setting
+		ActiveData:ko.observable(0),
+	}
+</script>
+<div  data-bind="with:Config">
+	<div class="row">
+		<div class="col-md-10">
+			<div class="input-group">
+			  <span class="input-group-addon">Input URL</span>
+			  <input type="text" class="form-control" data-bind="value:URL">
+			</div>
+		</div>
+		<div class="col-md-2">
+			<button class="btn btn-info" data-bind="click:GetURL">Get URL</button>
+			<button class="btn btn-danger" data-bind="click:Reset">Reset</button>
+		</div>
 	</div>
-	<div class="col-md-3">
-		Sidebar
-	</div>
-	<div class="col-md-9">
-		Content
+	<br/>
+	<div class="row">
+		<div class="col-md-3" id="sidebar">
+			<!-- Sidebar -->
+			
+			<div class="row">
+				<div class="col-md-12 align-center">
+					<h3 data-bind="visible:ProcessNumber()==1">Grabber - Set Up</h3>
+					<h3 data-bind="visible:ProcessNumber()==2">Grabber - Set Up &raquo; Data Setting</h3>
+				</div>
+			</div>
+			
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==1">
+				<div class="row">
+					<label class="col-md-5">
+						Name ID
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:NameID" class="form-control"/>
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Source Type
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="kendoDropDownList:{value:SourceType,data:SourceTypeList}" />
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Interval Type
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="kendoDropDownList:{value:IntervalType,data:IntervalList}" />
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Grab Interval
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:GrabInterval" class="form-control"/>
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Timeout Interval
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:TimeoutInterval" class="form-control"/>
+					</div>
+				</div>
+			</div>
+
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==2">
+				<div class="row">
+					<label class="col-md-12">
+						List :
+					</label>
+				</div>
+				<div class="row">
+					<div class="col-md-12">
+						<table width="100%" class="table">
+							<tr>
+								<th width="20%">Name</th>
+								<th>Row Selector</th>
+								<th>&nbsp;</th>
+							</tr>
+							<tbody data-bind="foreach:DataSetting">
+								<tr>
+									<td data-bind="text:Name()==''?'-':Name"></td>
+									<td data-bind="text:RowSelector()==''?'-':RowSelector"></td>
+									<td>
+										<button class="btn btn-xs btn-info">
+											<span class="fa fa-edit"></span>
+										</button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="row" data-bind="foreach:DataSetting">
+					<div class="col-md-12 data-setting" data-bind="visible:$index()==$parent.ActiveData()">
+						<div class="row">
+							<label class="col-md-5">
+								Name
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="value:Name" class="form-control"/>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Row Selector
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="value:RowSelector" class="form-control"/>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Destination Type
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:DestType,data:$parent.DestTypeList}" />
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-8">
+								<b>Column Setting : </b>
+							</div>
+							<div class="col-md-4 align-right">
+								<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.AddColumn('+$index()+')'}">
+									<span class="fa fa-plus"></span> add column
+								</button>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<table width="100%" class="table">
+									<tr>
+										<th width="40%">Alias</th>
+										<th>Selector</th>
+									</tr>
+									<tbody data-bind="foreach:ColumnSettings">
+										<tr>
+											<td>
+												<input type="text" class="form-control"/>
+											</td>
+											<td>
+												<input type="text" class="form-control"/>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="row">
+				<div class="col-md-12 align-right">
+					<button class="btn btn-primary" data-bind="visible:ProcessNumber()==2" onclick="Config.AddData();">Add More Data</button>
+
+					<button class="btn btn-default" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(1)">Back</button>
+					<button class="btn btn-default" data-bind="visible:ProcessNumber()==3" onclick="Config.ProcessNumber(2)">Back</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==1,attr:{disabled:!Config.isURLSet()}" onclick="Config.ProcessNumber(2)">Next</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(3)">Next</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==3,click:Save">Save</button>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-9">
+			<iframe name="URLPreview" id="URLPreview" width="100%" height="450px" frameborder="0"></iframe>
+		</div>
 	</div>
 </div>
+<script type="text/javascript">
+	Config.AddData = function(){
+		Config.DataSetting.push(new BaseData());
+		Config.ActiveData(Config.ActiveData()+1);
+	}
+	Config.AddColumn = function(index){
+		Config.DataSetting()[index].ColumnSettings.push(new BaseData());
+	}
+
+	Config.Reset = function(){
+		alert("Still working on it, please use manual Refresh ( Ctrl + F5 )");
+		return false;
+		Config.URL("");
+		$("#URLPreview").attr("src","")
+	}
+	Config.GetURL = function(){
+		Config.isURLSet(true);
+		window.open(Config.URL(),"URLPreview");
+		Config.DataSetting.push(new BaseData());
+	}
+	Config.Save = function(){
+		alert("Saving json");
+	}
+</script>
