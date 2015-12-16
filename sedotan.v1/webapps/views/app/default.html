@@ -1,0 +1,35 @@
+<center>
+    <h1>Knot Web Extension Default Page</h1>
+</center>
+
+<div id="content" style="margin:2px auto;padding:5px;background-color:#FFF;min-height:300px;width:95%">
+Please enter your name here <input id="name" type="text" style="width:300px">
+<br/>
+<input type="BUTTON" class="btn-primary" value="Submit Request" onclick="return doSubmitClicked();">
+
+<div style="margin-top:10px">
+<span  id="respond">
+</span><br/>
+Respond shown on this screen is processed via Ajax call
+</div>
+</div>
+
+<script>
+$(document).ready(function(){
+    height = $(window).height();
+    $("#content").height(height-60);
+})
+
+
+function doSubmitClicked(){
+    nameValue = $("#name").val();
+    url = "{{BaseUrl}}app/process";
+    ajaxPost(url,{nama:nameValue},function(data){
+        $("#respond").text(data);
+    },
+    function(txt){
+        alert(txt)
+    });
+}
+
+</script>
