@@ -30,6 +30,7 @@ type Config struct {
 
 type DataSetting struct {
 	RowSelector    string
+	RowDeleteCond  toolkit.M
 	ColumnSettings []*GrabColumn
 }
 
@@ -154,45 +155,3 @@ func (g *Grabber) ResultFromHtml(dataSettingId string, out interface{}) error {
 	}
 	return nil
 }
-
-// func (g *Grabber) ResultFromHtml(out interface{}) error {
-// 	//s := g.ResultString()
-// 	//-- read using jquery
-
-// 	reader := bytes.NewReader(g.bodyByte)
-// 	doc, e := gq.NewDocumentFromReader(reader)
-// 	if e != nil {
-// 		return e
-// 	}
-
-// 	ms := []toolkit.M{}
-// 	records := doc.Find(g.Config.RowSelector)
-// 	recordCount := records.Length()
-// 	//fmt.Printf("Find: %d nodes\n", recordCount)
-// 	for i := 0; i < recordCount; i++ {
-// 		record := records.Eq(i)
-// 		m := toolkit.M{}
-// 		for cindex, c := range g.Config.ColumnSettings {
-// 			columnId := fmt.Sprintf("%s", cindex)
-// 			if c.Alias != "" {
-// 				columnId = c.Alias
-// 			}
-// 			sel := record.Find(c.Selector)
-// 			var value interface{}
-// 			valuetype := strings.ToLower(c.ValueType)
-// 			if valuetype == "attr" {
-// 				value, _ = sel.Attr(c.AttrName)
-// 			} else if valuetype == "html" {
-// 				value, _ = sel.Html()
-// 			} else {
-// 				value = sel.Text()
-// 			}
-// 			m.Set(columnId, value)
-// 		}
-// 		ms = append(ms, m)
-// 	}
-// 	if edecode := toolkit.Unjson(toolkit.Jsonify(ms), out); edecode != nil {
-// 		return edecode
-// 	}
-// 	return nil
-// }
