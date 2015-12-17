@@ -59,36 +59,36 @@ func TestGrab(t *testing.T) {
 // 	}())
 // }
 
-// func TestQuery(t *testing.T) {
-// 	url := "http://www.shfe.com.cn/en/products/Gold/"
+func TestQuery(t *testing.T) {
+	url := "http://www.shfe.com.cn/en/products/Gold/"
 
-// 	g := NewGrabber(url, "GET", nil)
-// 	g.Config.DataSettings = make(map[string]*DataSetting)
+	g := NewGrabber(url, "GET", nil)
+	g.Config.DataSettings = make(map[string]*DataSetting)
 
-// 	tempDataSetting := DataSetting{}
-// 	tempDataSetting.RowSelector = "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
-// 	tempDataSetting.Column(0, &GrabColumn{Alias: "Code", Selector: "td:nth-child(1)"})
-// 	tempDataSetting.Column(0, &GrabColumn{Alias: "LongSpeculation", Selector: "td:nth-child(2)"})
-// 	tempDataSetting.Column(0, &GrabColumn{Alias: "ShortSpeculation", Selector: "td:nth-child(3)"})
+	tempDataSetting := DataSetting{}
+	tempDataSetting.RowSelector = "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
+	tempDataSetting.Column(0, &GrabColumn{Alias: "Code", Selector: "td:nth-child(1)"})
+	tempDataSetting.Column(0, &GrabColumn{Alias: "LongSpeculation", Selector: "td:nth-child(2)"})
+	tempDataSetting.Column(0, &GrabColumn{Alias: "ShortSpeculation", Selector: "td:nth-child(3)"})
 
-// 	g.Config.DataSettings["SELECT01"] = &tempDataSetting
+	g.Config.DataSettings["SELECT01"] = &tempDataSetting
 
-// 	if e := g.Grab(nil); e != nil {
-// 		t.Errorf("Unable to grab %s. Error: %s", url, e.Error())
-// 		return
-// 	}
+	if e := g.Grab(nil); e != nil {
+		t.Errorf("Unable to grab %s. Error: %s", url, e.Error())
+		return
+	}
 
-// 	docs := []toolkit.M{}
+	docs := []toolkit.M{}
 
-// 	e := g.ResultFromHtml("SELECT01", &docs)
-// 	if e != nil {
-// 		t.Errorf("Unable to read: %s", e.Error())
-// 	}
+	e := g.ResultFromHtml("SELECT01", &docs)
+	if e != nil {
+		t.Errorf("Unable to read: %s", e.Error())
+	}
 
-// 	for _, doc := range docs {
-// 		fmt.Println(doc)
-// 	}
-// }
+	for _, doc := range docs {
+		fmt.Println(doc)
+	}
+}
 
 func TestPost(t *testing.T) {
 	url := "http://www.dce.com.cn/PublicWeb/MainServlet"
@@ -117,7 +117,7 @@ func TestPost(t *testing.T) {
 	// res := toolkit.M{}
 	// json.Unmarshal([]byte(str), &res)
 
-	GrabConfig.setFormValues(dataurl)
+	GrabConfig.SetFormValues(dataurl)
 	g := NewGrabber(url, "POST", &GrabConfig)
 	// fmt.Println(g.Config.PostData)
 	g.Config.DataSettings = make(map[string]*DataSetting)
