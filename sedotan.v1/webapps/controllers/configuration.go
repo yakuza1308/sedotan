@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/eaciit/knot/knot.v1"
 	"strings"
 )
@@ -28,4 +29,18 @@ func (a *ConfigurationController) P(k *knot.WebContext) interface{} {
 		k.Config.ViewName = vn
 	}
 	return ""
+}
+
+func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
+	k.Config.OutputType = knot.OutputJson
+	d := struct {
+		Data string
+	}{}
+	e := k.GetPayload(&d)
+	fmt.Println(d)
+	if e != nil {
+		return e.Error()
+	} else {
+		return d.Data
+	}
 }
