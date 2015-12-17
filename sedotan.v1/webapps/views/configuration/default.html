@@ -85,6 +85,7 @@ iframe{
 				<div class="col-md-12 align-center">
 					<h3 data-bind="visible:ProcessNumber()==1">Grabber - Set Up</h3>
 					<h3 data-bind="visible:ProcessNumber()==2">Grabber - Set Up &raquo; Data Setting</h3>
+					<h3 data-bind="visible:ProcessNumber()==3">Grabber - Set Up &raquo; Preview</h3>
 				</div>
 			</div>
 			
@@ -179,14 +180,6 @@ iframe{
 							</div>
 						</div>
 						<div class="row">
-							<label class="col-md-5">
-								Destination Type
-							</label>
-							<div class="col-md-7">
-								<input type="text" data-bind="kendoDropDownList:{value:DestType,data:$parent.DestTypeList}" />
-							</div>
-						</div>
-						<div class="row">
 							<div class="col-md-8">
 								<b>Column Setting : </b>
 							</div>
@@ -214,6 +207,14 @@ iframe{
 										</tr>
 									</tbody>
 								</table>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Destination Type
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:DestType,data:$parent.DestTypeList}" />
 							</div>
 						</div>
 					</div>
@@ -258,6 +259,26 @@ iframe{
 		Config.DataSetting.push(new BaseData());
 	}
 	Config.Save = function(){
+		var jsondata = ko.mapping.toJSON(Config);
+		var data = ko.mapping.fromJSON(jsondata);
+		delete data["isURLSet"]
+		delete data["IntervalList"]
+		delete data["SourceTypeList"]
+		delete data["DestTypeList"]
+
+		delete data["ProcessNumber"]
+		delete data["ProcessTotal"]
+		delete data["ActiveData"]
+
+		var url = "{{BaseUrl}}configuration/save";
+		var parm = {Data:ko.mapping.toJSON(data)};
+		ajaxPost(url,parm,function(res){
+	        console.log(res)
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+
 		alert("Saving json");
 	}
 </script>
