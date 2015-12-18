@@ -1,7 +1,7 @@
 package sedotan
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"github.com/eaciit/toolkit"
 	"testing"
@@ -59,61 +59,71 @@ func TestGrab(t *testing.T) {
 // 	}())
 // }
 
-func TestQuery(t *testing.T) {
-	url := "http://www.shfe.com.cn/en/products/Gold/"
+// func TestQuery(t *testing.T) {
+// 	url := "http://www.shfe.com.cn/en/products/Gold/"
 
-	g := NewGrabber(url, "GET", nil)
-	g.Config.DataSettings = make(map[string]*DataSetting)
+// 	g := NewGrabber(url, "GET", nil)
+// 	g.Config.DataSettings = make(map[string]*DataSetting)
 
-	tempDataSetting := DataSetting{}
-	tempDataSetting.RowSelector = "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
-	tempDataSetting.Column(0, &GrabColumn{Alias: "Code", Selector: "td:nth-child(1)"})
-	tempDataSetting.Column(0, &GrabColumn{Alias: "LongSpeculation", Selector: "td:nth-child(2)"})
-	tempDataSetting.Column(0, &GrabColumn{Alias: "ShortSpeculation", Selector: "td:nth-child(3)"})
+// 	tempDataSetting := DataSetting{}
+// 	tempDataSetting.RowSelector = "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "Code", Selector: "td:nth-child(1)"})
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "LongSpeculation", Selector: "td:nth-child(2)"})
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "ShortSpeculation", Selector: "td:nth-child(3)"})
 
-	g.Config.DataSettings["SELECT01"] = &tempDataSetting
+// 	g.Config.DataSettings["SELECT01"] = &tempDataSetting
 
-	if e := g.Grab(nil); e != nil {
-		t.Errorf("Unable to grab %s. Error: %s", url, e.Error())
-		return
-	}
+// 	if e := g.Grab(nil); e != nil {
+// 		t.Errorf("Unable to grab %s. Error: %s", url, e.Error())
+// 		return
+// 	}
 
-	docs := []toolkit.M{}
+// 	docs := []toolkit.M{}
 
-	e := g.ResultFromHtml("SELECT01", &docs)
-	if e != nil {
-		t.Errorf("Unable to read: %s", e.Error())
-	}
+// 	e := g.ResultFromHtml("SELECT01", &docs)
+// 	if e != nil {
+// 		t.Errorf("Unable to read: %s", e.Error())
+// 	}
 
-	for _, doc := range docs {
-		fmt.Println(doc)
-	}
-}
+// 	for _, doc := range docs {
+// 		fmt.Println(doc)
+// 	}
+// }
 
 func TestPost(t *testing.T) {
 	url := "http://www.dce.com.cn/PublicWeb/MainServlet"
 	GrabConfig := Config{}
 
-	str := `{
-		        "data":
-		          {
-		            "Pu00231_Input.trade_date": "20151214",
-		            "Pu00231_Input.variety": "i",
-		            "Pu00231_Input.trade_type": 0,
-		            "Submit": "Go",
-		            "action": "Pu00231_result"
-		          }
-		      }`
-	res := toolkit.M{}
-	json.Unmarshal([]byte(str), &res)
+	dataurl := toolkit.M{}
+	dataurl["Pu00231_Input.trade_date"] = "20151214"
+	dataurl["Pu00231_Input.variety"] = "i"
+	dataurl["Pu00231_Input.trade_type"] = "0"
+	dataurl["Submit"] = "Go"
+	dataurl["action"] = "Pu00231_result"
 
-	GrabConfig.setData(res)
+	// postdata := toolkit.M{}.Set("formvalues", dataurl)
+	// fmt.Println(postdata)
 
+	// str := `{
+	//            "formvalues":
+	//              {
+	//                "Pu00231_Input.trade_date": "20151214",
+	//                "Pu00231_Input.variety": "i",
+	//                "Pu00231_Input.trade_type": "0",
+	//                "Submit": "Go",
+	//                "action": "Pu00231_result"
+	//              }
+	//          }`
+	// res := toolkit.M{}
+	// json.Unmarshal([]byte(str), &res)
+
+	GrabConfig.setFormValues(dataurl)
 	g := NewGrabber(url, "POST", &GrabConfig)
+	// fmt.Println(g.Config.PostData)
 	g.Config.DataSettings = make(map[string]*DataSetting)
 
 	tempDataSetting := DataSetting{}
-	tempDataSetting.RowSelector = "table .table tbody"
+	tempDataSetting.RowSelector = "table .table tbody tr"
 	tempDataSetting.Column(0, &GrabColumn{Alias: "Contract", Selector: "td:nth-child(1)"})
 	tempDataSetting.Column(0, &GrabColumn{Alias: "Open", Selector: "td:nth-child(2)"})
 	tempDataSetting.Column(0, &GrabColumn{Alias: "High", Selector: "td:nth-child(3)"})
@@ -136,5 +146,14 @@ func TestPost(t *testing.T) {
 		fmt.Println(doc)
 	}
 
-	fmt.Println(g.Config.Data)
+	// dataurl := url.Values{}
+	// dataurl.Add("Pu00231_Input.trade_date", "20151214")
+	// dataurl.Add("Pu00231_Input.variety", "i")
+	// dataurl.Add("Pu00231_Input.trade_type", 0)
+	// dataurl.Add("Submit", "Go")
+	// dataurl.Add("action", "Pu00231_result")
+
+	// fmt.Println(dataurl)
+	// fmt.Println("LINE 148", g.Config.PostData)
+	// fmt.Println(g.ResultString())
 }
