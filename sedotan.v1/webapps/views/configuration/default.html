@@ -22,39 +22,59 @@ iframe{
 .data-setting > .row > .col-md-5{
 	line-height: 25px;
 }
-
+.data-preview{
+	border-bottom:3px solid #0672A0;
+	margin-bottom: 10px;
+}
 </style>
 <h1>Configuration</h1><br/>
 <script type="text/javascript">
 	function ColumnBase(){
 		var self = this;
-		self.Index = ko.observable("");
-		self.Alias = ko.observable("");
-		self.Selector = ko.observable("");
+		self.index = ko.observable(0);
+		self.alias = ko.observable("");
+		self.selector = ko.observable("");
 		return self;
 	}
 	function BaseData(){
 		var self = this;
-		self.Name = ko.observable("");
-		self.RowSelector = ko.observable("");
-		self.ColumnSettings = ko.observableArray([]);
-		self.DestType = ko.observable("csv");
+		self.name = ko.observable("");
+		self.rowselector = ko.observable("");
+		self.columnsettings = ko.observableArray([]);
+		self.desttype = ko.observable("csv");
+		self.connectioninfo = {
+			host:ko.observable(""),
+			database:ko.observable(""),
+			collection:ko.observable(""),
+			settings:{
+				useheader:ko.observable(true),
+				delimiter:ko.observable(","),
+			},
+		};
 		return self;
 	}
 	var Config = {
 		isURLSet:ko.observable(false),
-		URL:ko.observable(""),
-		NameID:ko.observable(""),
-		SourceType:ko.observable("SourceType_Http"),
-		IntervalType:ko.observable("seconds"),
-		GrabInterval:ko.observable(0),
-		TimeoutInterval:ko.observable(0),
-		DataSetting:ko.observableArray([]),
+		url:ko.observable(""),
+		nameid:ko.observable(""),
+		calltype:ko.observable("GET"),
+		sourcetype:ko.observable("SourceType_Http"),
+		intervaltype:ko.observable("seconds"),
+		grabinterval:ko.observable(0),
+		timeoutinterval:ko.observable(0),
+		datasetting:ko.observableArray([]),
+		logconf:{
+			logpath:ko.observable(""),
+			filename: ko.observable(""),
+			filepattern: "20060102"
+		},
 
 		// Data Source
-		IntervalList:ko.observableArray(["seconds","minutes","hours"]),
-		SourceTypeList:ko.observableArray(["SourceType_Http"]),
-		DestTypeList:ko.observableArray(["csv","mongodb"]),
+		calltypeList:ko.observableArray(["GET","POST"]),
+		intervalList:ko.observableArray(["seconds","minutes","hours"]),
+		sourcetypeList:ko.observableArray(["SourceType_Http"]),
+		desttypeList:ko.observableArray(["csv","mongodb"]),
+		useheaderList:ko.observableArray([true,false]),
 		// Process
 		ProcessNumber:ko.observable(1),
 		ProcessTotal:ko.observable(3),
@@ -68,7 +88,7 @@ iframe{
 		<div class="col-md-10">
 			<div class="input-group">
 			  <span class="input-group-addon">Input URL</span>
-			  <input type="text" class="form-control" data-bind="value:URL">
+			  <input type="text" class="form-control" data-bind="value:url">
 			</div>
 		</div>
 		<div class="col-md-2">
@@ -95,7 +115,15 @@ iframe{
 						Name ID
 					</label>
 					<div class="col-md-7">
-						<input type="text" data-bind="value:NameID" class="form-control"/>
+						<input type="text" data-bind="value:nameid" class="form-control"/>
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Call Type
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="kendoDropDownList:{value:calltype,data:calltypeList}" />
 					</div>
 				</div>
 				<div class="row">
@@ -103,7 +131,7 @@ iframe{
 						Source Type
 					</label>
 					<div class="col-md-7">
-						<input type="text" data-bind="kendoDropDownList:{value:SourceType,data:SourceTypeList}" />
+						<input type="text" data-bind="kendoDropDownList:{value:sourcetype,data:sourcetypeList}" />
 					</div>
 				</div>
 				<div class="row">
@@ -111,7 +139,7 @@ iframe{
 						Interval Type
 					</label>
 					<div class="col-md-7">
-						<input type="text" data-bind="kendoDropDownList:{value:IntervalType,data:IntervalList}" />
+						<input type="text" data-bind="kendoDropDownList:{value:intervaltype,data:intervalList}" />
 					</div>
 				</div>
 				<div class="row">
@@ -119,7 +147,7 @@ iframe{
 						Grab Interval
 					</label>
 					<div class="col-md-7">
-						<input type="text" data-bind="value:GrabInterval" class="form-control"/>
+						<input type="text" data-bind="value:grabinterval" class="form-control"/>
 					</div>
 				</div>
 				<div class="row">
@@ -127,7 +155,7 @@ iframe{
 						Timeout Interval
 					</label>
 					<div class="col-md-7">
-						<input type="text" data-bind="value:TimeoutInterval" class="form-control"/>
+						<input type="text" data-bind="value:timeoutinterval" class="form-control"/>
 					</div>
 				</div>
 			</div>
@@ -146,10 +174,10 @@ iframe{
 								<th>Row Selector</th>
 								<th>&nbsp;</th>
 							</tr>
-							<tbody data-bind="foreach:DataSetting">
+							<tbody data-bind="foreach:datasetting">
 								<tr>
-									<td data-bind="text:Name()==''?'-':Name"></td>
-									<td data-bind="text:RowSelector()==''?'-':RowSelector"></td>
+									<td data-bind="text:name()==''?'-':name"></td>
+									<td data-bind="text:rowselector()==''?'-':rowselector"></td>
 									<td>
 										<button class="btn btn-xs btn-info">
 											<span class="fa fa-edit"></span>
@@ -161,14 +189,14 @@ iframe{
 					</div>
 				</div>
 
-				<div class="row" data-bind="foreach:DataSetting">
+				<div class="row" data-bind="foreach:datasetting">
 					<div class="col-md-12 data-setting" data-bind="visible:$index()==$parent.ActiveData()">
 						<div class="row">
 							<label class="col-md-5">
 								Name
 							</label>
 							<div class="col-md-7">
-								<input type="text" data-bind="value:Name" class="form-control"/>
+								<input type="text" data-bind="value:name" class="form-control"/>
 							</div>
 						</div>
 						<div class="row">
@@ -176,7 +204,7 @@ iframe{
 								Row Selector
 							</label>
 							<div class="col-md-7">
-								<input type="text" data-bind="value:RowSelector" class="form-control"/>
+								<input type="text" data-bind="value:rowselector" class="form-control"/>
 							</div>
 						</div>
 						<div class="row">
@@ -196,13 +224,13 @@ iframe{
 										<th width="40%">Alias</th>
 										<th>Selector</th>
 									</tr>
-									<tbody data-bind="foreach:ColumnSettings">
+									<tbody data-bind="foreach:columnsettings">
 										<tr>
 											<td>
-												<input type="text" class="form-control"/>
+												<input type="text" class="form-control" data-bind="value:alias"/>
 											</td>
 											<td>
-												<input type="text" class="form-control"/>
+												<input type="text" class="form-control" data-bind="value:selector"/>
 											</td>
 										</tr>
 									</tbody>
@@ -214,8 +242,120 @@ iframe{
 								Destination Type
 							</label>
 							<div class="col-md-7">
-								<input type="text" data-bind="kendoDropDownList:{value:DestType,data:$parent.DestTypeList}" />
+								<input type="text" data-bind="kendoDropDownList:{value:desttype,data:$parent.desttypeList}" />
 							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Host
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control" data-bind="value:connectioninfo.host"/>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongodb'">
+							<label class="col-md-5">
+								Database
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control" data-bind="value:connectioninfo.database"/>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongodb'">
+							<label class="col-md-5">
+								Collection
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control" data-bind="value:connectioninfo.collection"/>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Use Header
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:connectioninfo.settings.useheader,data:$parent.useheaderList}" />
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Delimiter
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control" data-bind="value:connectioninfo.settings.delimiter"/>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==3">
+				<div class="row" data-bind="foreach:datasetting">
+					<div class="col-md-12 data-setting data-preview">
+						<div class="row">
+							<label class="col-md-5">Name</label>
+							<div class="col-md-7" data-bind="text:name"></div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">Row Selector</label>
+							<div class="col-md-7" data-bind="text:rowselector" ></div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<b>Column Setting : </b>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<table width="100%" class="table">
+									<tr>
+										<th width="40%">Alias</th>
+										<th>Selector</th>
+									</tr>
+									<tbody data-bind="foreach:columnsettings">
+										<tr>
+											<td data-bind="text:alias"></td>
+											<td data-bind="text:selector"></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Destination Type
+							</label>
+							<div class="col-md-7" data-bind="text:desttype"></div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Host
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.host"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongodb'">
+							<label class="col-md-5">
+								Database
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.database"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongodb'">
+							<label class="col-md-5">
+								Collection
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.collection"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Use Header
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.settings.useheader"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Delimiter
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.settings.delimiter"></div>
 						</div>
 					</div>
 				</div>
@@ -240,45 +380,68 @@ iframe{
 </div>
 <script type="text/javascript">
 	Config.AddData = function(){
-		Config.DataSetting.push(new BaseData());
+		Config.datasetting.push(new BaseData());
 		Config.ActiveData(Config.ActiveData()+1);
 	}
 	Config.AddColumn = function(index){
-		Config.DataSetting()[index].ColumnSettings.push(new BaseData());
+		Config.datasetting()[index].columnsettings.push(new ColumnBase());
 	}
 
 	Config.Reset = function(){
 		alert("Still working on it, please use manual Refresh ( Ctrl + F5 )");
 		return false;
-		Config.URL("");
+		Config.url("");
 		$("#URLPreview").attr("src","")
 	}
 	Config.GetURL = function(){
 		Config.isURLSet(true);
-		window.open(Config.URL(),"URLPreview");
-		Config.DataSetting.push(new BaseData());
+		window.open(Config.url(),"URLPreview");
+		Config.datasetting.push(new BaseData());
 	}
 	Config.Save = function(){
+		Config.grabinterval(parseFloat(Config.grabinterval()));
+		Config.timeoutinterval(parseFloat(Config.timeoutinterval()));
 		var jsondata = ko.mapping.toJSON(Config);
 		var data = ko.mapping.fromJSON(jsondata);
+
 		delete data["isURLSet"]
-		delete data["IntervalList"]
-		delete data["SourceTypeList"]
-		delete data["DestTypeList"]
+		delete data["calltypeList"]
+		delete data["intervalList"]
+		delete data["sourcetypeList"]
+		delete data["desttypeList"]
+		delete data["useheaderList"]
 
 		delete data["ProcessNumber"]
 		delete data["ProcessTotal"]
 		delete data["ActiveData"]
+		
+		for(var i in data.datasetting()){
+			switch(data.datasetting()[i].desttype()){
+				case "csv":
+					delete data.datasetting()[i].connectioninfo["database"]
+					delete data.datasetting()[i].connectioninfo["collection"]
+					break;
+				case "mongodb":
+					delete data.datasetting()[i].connectioninfo["settings"]
+					break;
+				default:
+					break;
+			}
+		}
 
+		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
+		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
+		data.logconf.logpath("data/logs/"+filename+"/");
+		data.logconf.filename("LOG-GRAB"+filename);
 		var url = "{{BaseUrl}}configuration/save";
 		var parm = {Data:ko.mapping.toJSON(data)};
 		ajaxPost(url,parm,function(res){
-	        console.log(res)
+	        alert("Configuration succesfully saved");
+	        location.reload()
 	    },
 	    function(err){
 	        alert(err.responseText)
 	    });
 
-		alert("Saving json");
 	}
 </script>
