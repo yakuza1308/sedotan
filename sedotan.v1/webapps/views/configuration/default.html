@@ -519,7 +519,26 @@ iframe{
 			}
 
 		}
-		console.log(data);
+	}
+
+	
+
+	Config.Delete = function(nameid){
+		if(!confirm("Are you sure?")){
+			return false;
+		}
+
+		var url = "{{BaseUrl}}configuration/delete";
+		var parm = {
+			NameID:nameid
+		};
+		ajaxPost(url,parm,function(res){
+	        alert("Data has been deleted");
+	        location.reload()
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
 	}
 	Config.GenDataList = function(dataSource){
 		$("#DataList").html("");
@@ -539,8 +558,10 @@ iframe{
 			  { field: "grabinterval", title: "Grab Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
 			  { field: "timeoutinterval", title: "Timeout Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
 			  { field: "datasetting", title: "Data Setting",template:"#:datasetting.length# Data"},
-			  { field: "nameid", title: "&nbsp;",filterable:false,sortable:false,width:80,attributes:{ class:"align-center" },
-			  	template:"<button class='btn btn-default' onclick='Config.Edit(\"#:nameid#\")'><span class='fa fa-edit' ></span></button>"
+			  { field: "nameid", title: "&nbsp;",filterable:false,sortable:false,width:100,attributes:{ class:"align-center" },
+			  	template:"<button class='btn btn-default' onclick='Config.Edit(\"#:nameid#\")'><span class='fa fa-edit' ></span></button>"+
+			  	"&nbsp;"+
+			  	"<button class='btn btn-default' onclick='Config.Delete(\"#:nameid#\")'><span class='fa fa-trash' ></span></button>"
 			  },
 
 			]
