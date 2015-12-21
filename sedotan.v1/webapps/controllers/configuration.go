@@ -69,8 +69,6 @@ func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
 	defer c.Close()
 	e = c.Connect()
 	if d.IsEdit == true {
-		// fmt.Println(d.IsEdit)
-		// fmt.Println(d.NameID)
 		e = c.NewQuery().Where(dbox.Eq("nameid", d.NameID)).Delete().Exec(nil)
 	}
 	e = c.NewQuery().Insert().Exec(tk.M{"data": current_data})
@@ -81,6 +79,33 @@ func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
 		return e.Error()
 	} else {
 		return d.Data
+	}
+}
+
+func (a *ConfigurationController) Delete(k *knot.WebContext) interface{} {
+	var (
+		filename string
+	)
+
+	d := struct {
+		NameID string
+	}{}
+	e := k.GetPayload(&d)
+	k.Config.OutputType = knot.OutputJson
+
+	filename = wd + "data\\configuration.json"
+	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
+	c, e := dbox.NewConnection("json", ci)
+	defer c.Close()
+	e = c.Connect()
+	e = c.NewQuery().Where(dbox.Eq("nameid", d.NameID)).Delete().Exec(nil)
+	if e != nil {
+		fmt.Println("Found : ", e)
+	}
+	if e != nil {
+		return e.Error()
+	} else {
+		return "OK"
 	}
 }
 
@@ -134,6 +159,7 @@ func (a *ConfigurationController) GetData(k *knot.WebContext) interface{} {
 	defer c.Close()
 	e = c.Connect()
 	csr, e := c.NewQuery().Select("*").Cursor(nil)
+	fmt.Println(filename)
 	data, _ := csr.Fetch(nil, 0, false)
 	if e != nil {
 		fmt.Println("Found : ", e)
