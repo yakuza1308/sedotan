@@ -47,6 +47,7 @@ func newGrabService() *GrabService {
 	g.SourceType = SourceType_Http
 	g.GrabInterval = 5 * time.Minute
 	g.TimeOutInterval = 1 * time.Minute
+	g.serviceRunningStat = false
 	return g
 }
 
@@ -144,6 +145,10 @@ func (g *GrabService) StartService() error {
 }
 
 func (g *GrabService) StopService() error {
+	if g.serviceRunningStat == false {
+		return errors.New("Service Already Stop")
+	}
+
 	if g.serviceRunningStat {
 		g.serviceRunningStat = false
 		g.Log.AddLog(fmt.Sprintf("[%s] Stop Service", g.Name), "INFO")
