@@ -54,6 +54,8 @@ iframe{
 		return self;
 	}
 	var Config = {
+		Data:ko.observableArray([]),
+		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
 		url:ko.observable(""),
 		nameid:ko.observable(""),
@@ -81,23 +83,35 @@ iframe{
 
 		// Data Setting
 		ActiveData:ko.observable(0),
+		isEdit:ko.observable(false),
 	}
 </script>
+
 <div  data-bind="with:Config">
-	<div class="row">
-		<div class="col-md-10">
+	<div class="row" data-bind="visible:!isFormActive()">
+		<div class="col-md-12 align-right">
+			<button class="btn btn-info" data-bind="click:AddNew">Add New</button>
+		</div>
+		<br/>
+		<div class="col-md-12">
+			<div id="DataList"></div>
+		</div>
+	</div>
+	<div class="row"  data-bind="visible:isFormActive()">
+		<div class="col-md-8">
 			<div class="input-group">
 			  <span class="input-group-addon">Input URL</span>
 			  <input type="text" class="form-control" data-bind="value:url">
 			</div>
 		</div>
-		<div class="col-md-2">
+		<div class="col-md-3">
 			<button class="btn btn-info" data-bind="click:GetURL">Get URL</button>
 			<button class="btn btn-danger" data-bind="click:Reset">Reset</button>
+			<button class="btn btn-primary" onclick="Config.isFormActive(false)">Cancel</button>
 		</div>
 	</div>
 	<br/>
-	<div class="row">
+	<div class="row"  data-bind="visible:isFormActive()">
 		<div class="col-md-3" id="sidebar">
 			<!-- Sidebar -->
 			
@@ -179,7 +193,7 @@ iframe{
 									<td data-bind="text:name()==''?'-':name"></td>
 									<td data-bind="text:rowselector()==''?'-':rowselector"></td>
 									<td>
-										<button class="btn btn-xs btn-info">
+										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.ActiveData('+$index()+')'}">
 											<span class="fa fa-edit"></span>
 										</button>
 									</td>
@@ -379,6 +393,10 @@ iframe{
 	</div>
 </div>
 <script type="text/javascript">
+	Config.AddNew = function(){
+		Config.isFormActive(true);
+		Config.isEdit(false);
+	}
 	Config.AddData = function(){
 		Config.datasetting.push(new BaseData());
 		Config.ActiveData(Config.ActiveData()+1);
@@ -388,10 +406,11 @@ iframe{
 	}
 
 	Config.Reset = function(){
-		alert("Still working on it, please use manual Refresh ( Ctrl + F5 )");
-		return false;
-		Config.url("");
-		$("#URLPreview").attr("src","")
+		location.reload()
+		// alert("Still working on it, please use manual Refresh ( Ctrl + F5 )");
+		// return false;
+		// Config.url("");
+		// $("#URLPreview").attr("src","")
 	}
 	Config.GetURL = function(){
 		Config.isURLSet(true);
@@ -403,7 +422,8 @@ iframe{
 		Config.timeoutinterval(parseFloat(Config.timeoutinterval()));
 		var jsondata = ko.mapping.toJSON(Config);
 		var data = ko.mapping.fromJSON(jsondata);
-
+		delete data["Data"]
+		delete data["isFormActive"]
 		delete data["isURLSet"]
 		delete data["calltypeList"]
 		delete data["intervalList"]
@@ -414,6 +434,7 @@ iframe{
 		delete data["ProcessNumber"]
 		delete data["ProcessTotal"]
 		delete data["ActiveData"]
+		delete data["isEdit"]
 		
 		for(var i in data.datasetting()){
 			switch(data.datasetting()[i].desttype()){
@@ -434,7 +455,11 @@ iframe{
 		data.logconf.logpath("data/logs/"+filename+"/");
 		data.logconf.filename("LOG-GRAB"+filename);
 		var url = "{{BaseUrl}}configuration/save";
-		var parm = {Data:ko.mapping.toJSON(data)};
+		var parm = {
+			Data:ko.mapping.toJSON(data),
+			IsEdit:Config.isEdit(),
+			NameID:data.nameid
+		};
 		ajaxPost(url,parm,function(res){
 	        alert("Configuration succesfully saved");
 	        location.reload()
@@ -442,6 +467,108 @@ iframe{
 	    function(err){
 	        alert(err.responseText)
 	    });
-
 	}
+
+	Config.GetConfiguration = function(){
+		var url = "{{BaseUrl}}configuration/getdata";
+		var parm = {};
+		ajaxPost(url,parm,function(res){
+			Config.Data(res);
+			Config.GenDataList(res);
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Config.Edit = function(nameid){
+		Config.isEdit(true);
+		var dataSource = Config.Data();
+		var data = Enumerable.From(dataSource).Where(function(x){return x.nameid == nameid}).FirstOrDefault()
+		Config.isFormActive(true);
+		Config.url(data.url);
+		Config.isURLSet(true);
+		Config.nameid(data.nameid);
+		Config.calltype(data.calltype);
+		Config.sourcetype(data.sourcetype);
+		Config.intervaltype(data.intervaltype);
+		Config.grabinterval(data.grabinterval);
+		Config.timeoutinterval(data.timeoutinterval);
+		var datasetting = data.datasetting;
+		for(var i in datasetting){
+			Config.datasetting.push(new BaseData());
+			Config.datasetting()[i].name(datasetting[i].name);
+			Config.datasetting()[i].desttype(datasetting[i].desttype);
+			Config.datasetting()[i].rowselector(datasetting[i].rowselector);
+			Config.datasetting()[i].connectioninfo.host(datasetting[i].connectioninfo.host);
+			switch(datasetting[i].desttype){
+				case "csv":
+					Config.datasetting()[i].connectioninfo.settings.useheader(datasetting[i].connectioninfo.settings.useheader);
+					Config.datasetting()[i].connectioninfo.settings.delimiter(datasetting[i].connectioninfo.settings.delimiter);
+				break;
+				case "mongodb":
+					Config.datasetting()[i].connectioninfo.collection(datasetting[i].connectioninfo.collection);
+					Config.datasetting()[i].connectioninfo.database(datasetting[i].connectioninfo.database);
+				break;
+				default:break;
+			}
+			var columnsettings = datasetting[i].columnsettings;
+			for(var c in columnsettings){
+				Config.datasetting()[i].columnsettings.push(new ColumnBase())
+				Config.datasetting()[i].columnsettings()[c].alias(columnsettings[c].alias);
+				Config.datasetting()[i].columnsettings()[c].selector(columnsettings[c].selector);
+			}
+
+		}
+	}
+
+	
+
+	Config.Delete = function(nameid){
+		if(!confirm("Are you sure?")){
+			return false;
+		}
+
+		var url = "{{BaseUrl}}configuration/delete";
+		var parm = {
+			NameID:nameid
+		};
+		ajaxPost(url,parm,function(res){
+	        alert("Data has been deleted");
+	        location.reload()
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Config.GenDataList = function(dataSource){
+		$("#DataList").html("");
+		$("#DataList").kendoGrid({
+			dataSource: {
+			  data: dataSource,
+			  pageSize: 10
+			},
+			scrollable: true,
+			sortable: true,
+			filterable: true,
+			columns: [
+			  { field: "nameid", title: "Name ID"},
+			  { field: "calltype", title: "Call Type",width:100},
+			  { field: "sourcetype", title: "Source Type",width:150},
+			  { field: "intervaltype", title: "Interval Type",width:120},
+			  { field: "grabinterval", title: "Grab Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
+			  { field: "timeoutinterval", title: "Timeout Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
+			  { field: "datasetting", title: "Data Setting",template:"#:datasetting.length# Data"},
+			  { field: "nameid", title: "&nbsp;",filterable:false,sortable:false,width:100,attributes:{ class:"align-center" },
+			  	template:"<button class='btn btn-default' onclick='Config.Edit(\"#:nameid#\")'><span class='fa fa-edit' ></span></button>"+
+			  	"&nbsp;"+
+			  	"<button class='btn btn-default' onclick='Config.Delete(\"#:nameid#\")'><span class='fa fa-trash' ></span></button>"
+			  },
+
+			]
+		})
+	}
+
+	$(document).ready(function(){
+		Config.GetConfiguration();
+	})
 </script>

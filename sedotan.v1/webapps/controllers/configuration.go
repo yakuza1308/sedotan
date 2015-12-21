@@ -50,11 +50,11 @@ func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
 	)
 
 	d := struct {
-		Data string
+		Data   string
+		IsEdit bool
+		NameID string
 	}{}
 	e := k.GetPayload(&d)
-
-	filename = wd + "data\\configuration.json"
 	k.Config.OutputType = knot.OutputJson
 
 	current_data := tk.M{}
@@ -63,42 +63,49 @@ func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
 		fmt.Println("Found : ", e)
 	}
 
+	filename = wd + "data\\configuration.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
 	e = c.Connect()
+	if d.IsEdit == true {
+		e = c.NewQuery().Where(dbox.Eq("nameid", d.NameID)).Delete().Exec(nil)
+	}
 	e = c.NewQuery().Insert().Exec(tk.M{"data": current_data})
 	if e != nil {
 		fmt.Println("Found : ", e)
 	}
-	// current_json, e := json.MarshalIndent(current_data, "", "  ")
-	// fmt.Println(current_json)
-
-	// for _, valM := range v {
-	// 	fmt.Println(valM)
-	// 	b, e := json.MarshalIndent(valM, "", "  ")
-	// 	if e != nil {
-	// 		fmt.Println("Found : ", e)
-	// 	}
-	// 	fmt.Printf("\\n\\n\\n")
-	// 	fmt.Println(string(b))
-	// }
-
-	// configuration, e := ioutil.ReadFile(filename)
-	// if e != nil {
-	// 	f, _ := os.Create(filename)
-	// 	f.WriteString("[" + d.Data + "]")
-	// 	f.Sync()
-	// 	defer f.Close()
-	// }
-	// fmt.Println(configuration)
-	// fmt.Println("...")
-
-	// fmt.Println(d)
 	if e != nil {
 		return e.Error()
 	} else {
 		return d.Data
+	}
+}
+
+func (a *ConfigurationController) Delete(k *knot.WebContext) interface{} {
+	var (
+		filename string
+	)
+
+	d := struct {
+		NameID string
+	}{}
+	e := k.GetPayload(&d)
+	k.Config.OutputType = knot.OutputJson
+
+	filename = wd + "data\\configuration.json"
+	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
+	c, e := dbox.NewConnection("json", ci)
+	defer c.Close()
+	e = c.Connect()
+	e = c.NewQuery().Where(dbox.Eq("nameid", d.NameID)).Delete().Exec(nil)
+	if e != nil {
+		fmt.Println("Found : ", e)
+	}
+	if e != nil {
+		return e.Error()
+	} else {
+		return "OK"
 	}
 }
 
@@ -140,5 +147,26 @@ func (a *ConfigurationController) TestingDBOX(k *knot.WebContext) interface{} {
 		return e.Error()
 	} else {
 		return d.Data
+	}
+}
+
+func (a *ConfigurationController) GetData(k *knot.WebContext) interface{} {
+	k.Config.OutputType = knot.OutputJson
+
+	filename := wd + "data\\configuration.json"
+	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
+	c, e := dbox.NewConnection("json", ci)
+	defer c.Close()
+	e = c.Connect()
+	csr, e := c.NewQuery().Select("*").Cursor(nil)
+	fmt.Println(filename)
+	data, _ := csr.Fetch(nil, 0, false)
+	if e != nil {
+		fmt.Println("Found : ", e)
+	}
+	if e != nil {
+		return e.Error()
+	} else {
+		return data.Data
 	}
 }
