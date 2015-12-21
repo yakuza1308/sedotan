@@ -124,7 +124,7 @@ func TestServiceGrabGet(t *testing.T) {
 	tempDataSetting := DataSetting{}
 	tempDestInfo := DestInfo{}
 
-	tempDataSetting.RowSelector = "#tab_conbox li:nth-child(1) .sjtable .listshuju tbody tr"
+	tempDataSetting.RowSelector = "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
 	tempDataSetting.Column(0, &GrabColumn{Alias: "Code", Selector: "td:nth-child(1)"})
 	tempDataSetting.Column(0, &GrabColumn{Alias: "LongSpeculation", Selector: "td:nth-child(2)"})
 	tempDataSetting.Column(0, &GrabColumn{Alias: "ShortSpeculation", Selector: "td:nth-child(3)"})
