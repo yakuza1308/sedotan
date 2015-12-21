@@ -1,6 +1,209 @@
 <h1>Dashboard</h1>
-<div class="row">
-     <div class="col-md-12">
-     Dashboard Page
-     </div>
+
+<div id="grid">
 </div>
+
+<div  data-bind="with:Dashboard">
+	<div class="row">
+	     <div class="col-md-12">
+	     Dashboard Page
+	     </div>
+	</div>
+
+	<div class="row">
+	     <div class="col-md-4">
+	     Cok jenengmu sopo
+	     </div>
+	     <div class="col-md-8">
+	     <input type="text" data-bind="value:Jenengku"/>
+	     </div>
+	</div>
+
+	<div class="row">
+	     <div class="col-md-12">
+	     Nek jenengku <span data-bind="text:Jenengku"></span> kon kate lapo
+	     </div>
+	</div>
+</div>
+<style>
+.critical {
+    background-color: #d9534f;
+    font-weight: bold;
+    color: #fff;
+}
+
+.stop {
+    background-color: #777;
+    font-weight: bold;
+    color: #fff;
+}
+
+.ok {
+    background-color: #5cb85c;
+    font-weight: bold;
+    color: #fff;
+}
+</style>
+
+<script>
+var datas = [{
+    Status: "RUN",
+    NameId: "goldshfecom",
+    Source: "http://www.shfe.com.cn/en/products/Gold/",
+    Interval: 20,
+    LastGrab: "",
+    GrabStat: "",
+    Note: ""
+}, {
+    Status: "STOP",
+    NameId: "irondcecomcn",
+    Source: "http://www.dce.com.cn/PublicWeb/MainServlet",
+    Interval: 20,
+    LastGrab: "",
+    GrabStat: "",
+    Note: ""
+}, {
+    Status: "ERROR",
+    NameId: "goldshfecom",
+    Source: "http://www.shfe.com.cn/en/products/Gold/",
+    Interval: 20,
+    LastGrab: "",
+    GrabStat: "",
+    Note: ""
+}];
+
+var localDataSource = new kendo.data.DataSource({
+    data: datas
+});
+
+//Grid
+var commonSettings = {
+	dataSource: localDataSource,
+    // {
+    //     type: "odata",
+    //     transport: {
+    //         read: function(options) {
+    //     	 	
+    //         }
+    //     },
+    //     pageSize: 20
+    // },
+    height: 550,
+    sortable: true,
+    pageable: {
+        refresh: true,
+        pageSizes: true,
+        buttonCount: 5
+    },
+    editable: false,
+	columns: [{
+        field: "Status",
+        title: "STATUS",
+        width: 100
+    }, {
+        field: "NameId",
+        title: "NAME ID"
+    }, {
+        field: "Source",
+        title: "SOURCE"
+    }, {
+        field: "Interval",
+        title: "INTERVAL"
+    }, {
+        field: "LastGrab",
+        title: "LAST GRAB"
+    }, {
+        field: "GrabStat",
+        title: "GRAB STAT"
+    }, {
+        field: "Note",
+        title: "NOTE"
+    }, {
+    	command:[
+        {
+            text: "Start",
+            name: "start",
+            className: "btn btn-success"
+        }, 
+        {
+            text:"Stop",
+            name: "stop",
+            className: "btn btn-default"
+        }
+        ], width: "165px"
+    }]
+}
+
+function getStatusClass(stat){
+    if (stat == "RUN") {
+        return "ok"
+    } else if (stat =="STOP") {
+        return "stop"
+    } else if (stat == "ERROR") {
+        return "critical"
+    }
+}
+
+$("#grid").kendoGrid($.extend({
+        dataBound: function(e) {
+            var columns = e.sender.columns;
+            var columnIndex = 0;
+            for (var j = 0; j < columns.length; j++) {
+                if (columns[j].field == "Status") {
+                    break;
+                }
+                columnIndex++;
+            }
+            
+            var dataItems = e.sender.dataSource.view();
+            for (var j = 0; j < dataItems.length; j++) {
+                checkStat(dataItems[j].get("Interval"), dataItems[j].get("NameId"), dataItems[j].uid)
+
+                var stat = dataItems[j].get("Status");
+                var row = e.sender.tbody.find("[data-uid='" + dataItems[j].uid + "']");
+                var cell = row.children().eq(columnIndex);                
+                cell.addClass(getStatusClass(stat));   
+                         
+            }
+        }
+    }, commonSettings));
+
+//check button
+// $(".k-grid-start", "#grid").toggleClass("btn-success","btn-default");
+
+
+function checkStat(interval, name, uid){
+    var inSecond = interval * 1000
+    var myInterval = setInterval(function () {
+            $.ajax({
+            url: "{{BaseUrl}}dashboard/stat",
+            dataType: "json",
+            type: "POST",
+            success: function(data) {
+                console.log(uid)
+            },
+            error: function(e) {
+                console.log(e)
+            }
+        });
+    },interval);
+ console.log(myInterval)   
+    
+}
+
+function getConfig() {
+    //get config
+    $.ajax({
+        url: "{{BaseUrl}}dashboard/getconfig",
+        dataType: "json",
+        type: "POST",
+        success: function(data){
+        console.log(data)
+        // options.success(data)
+        }
+    });
+}
+var Dashboard = {
+	Jenengku:ko.observable("Ainur")
+}
+</script>
