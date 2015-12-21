@@ -144,12 +144,57 @@ func (g *Grabber) ResultFromHtml(dataSettingId string, out interface{}) error {
 			} else {
 				value = sel.Text()
 			}
+			value = strings.TrimSpace(fmt.Sprintf("%s", value))
 			m.Set(columnId, value)
 		}
-		ms = append(ms, m)
+
+		if !(g.Config.DataSettings[dataSettingId].getCondition(m)) {
+			ms = append(ms, m)
+		}
 	}
 	if edecode := toolkit.Unjson(toolkit.Jsonify(ms), out); edecode != nil {
 		return edecode
 	}
 	return nil
+}
+
+func (ds *DataSetting) getCondition(dataCheck toolkit.M) bool {
+	resBool := true
+
+	if len(ds.RowDeleteCond) > 0 {
+		resBool = foundCondition(dataCheck, ds.RowDeleteCond)
+	}
+
+	return resBool
+}
+
+func foundCondition(dataCheck toolkit.M, cond toolkit.M) bool {
+	resBool := true
+
+	for key, val := range cond {
+		if key == "$and" || key == "$or" {
+			for i, sVal := range val.([]interface{}) {
+				rVal := sVal.(map[string]interface{})
+				mVal := toolkit.M{}
+				for rKey, mapVal := range rVal {
+					mVal.Set(rKey, mapVal)
+				}
+
+				xResBool := foundCondition(dataCheck, mVal)
+				if key == "$and" {
+					resBool = resBool && xResBool
+				} else {
+					if i == 0 {
+						resBool = xResBool
+					} else {
+						resBool = resBool || xResBool
+					}
+				}
+			}
+		} else if val != dataCheck.Get(key, "").(string) {
+			resBool = false
+		}
+	}
+
+	return resBool
 }
