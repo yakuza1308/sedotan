@@ -159,7 +159,7 @@ func (g *Grabber) ResultFromHtml(dataSettingId string, out interface{}) error {
 }
 
 func (ds *DataSetting) getCondition(dataCheck toolkit.M) bool {
-	resBool := true
+	resBool := false
 
 	if len(ds.RowDeleteCond) > 0 {
 		resBool = foundCondition(dataCheck, ds.RowDeleteCond)
