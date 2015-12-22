@@ -95,7 +95,7 @@ func TestPost(t *testing.T) {
 	GrabConfig := Config{}
 
 	dataurl := toolkit.M{}
-	dataurl["Pu00231_Input.trade_date"] = "20151214"
+	dataurl["Pu00231_Input.trade_date"] = "time.Now().Date2String(YYYYMMDD)"
 	dataurl["Pu00231_Input.variety"] = "i"
 	dataurl["Pu00231_Input.trade_type"] = "0"
 	dataurl["Submit"] = "Go"
