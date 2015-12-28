@@ -33,7 +33,7 @@ type GrabService struct {
 	LastGrabExe  time.Time
 	LastGrabStat bool
 
-	serviceRunningStat bool
+	ServiceRunningStat bool
 }
 
 type DestInfo struct {
@@ -47,14 +47,14 @@ func NewGrabService() *GrabService {
 	g.SourceType = SourceType_Http
 	g.GrabInterval = 5 * time.Minute
 	g.TimeOutInterval = 1 * time.Minute
-	g.serviceRunningStat = false
+	g.ServiceRunningStat = false
 	return g
 }
 
 func (g *GrabService) execService() {
 	g.LastGrabStat = false
 	go func(g *GrabService) {
-		for g.serviceRunningStat {
+		for g.ServiceRunningStat {
 
 			if g.LastGrabStat {
 				<-time.After(g.GrabInterval)
@@ -126,15 +126,15 @@ func (g *GrabService) execService() {
 
 func (g *GrabService) StartService() error {
 
-	if g.serviceRunningStat == true {
+	if g.ServiceRunningStat == true {
 		return errors.New("Service Already Running")
 	}
 
-	g.serviceRunningStat = false
+	g.ServiceRunningStat = false
 	noErrorFound, e := g.validateService()
 
 	if noErrorFound {
-		g.serviceRunningStat = true
+		g.ServiceRunningStat = true
 		g.Log.AddLog(fmt.Sprintf("[%s] Running Service", g.Name), "INFO")
 		g.execService()
 	} else {
@@ -145,12 +145,8 @@ func (g *GrabService) StartService() error {
 }
 
 func (g *GrabService) StopService() error {
-	if g.serviceRunningStat == false {
-		return errors.New("Service Already Stop")
-	}
-
-	if g.serviceRunningStat {
-		g.serviceRunningStat = false
+	if g.ServiceRunningStat {
+		g.ServiceRunningStat = false
 		g.Log.AddLog(fmt.Sprintf("[%s] Stop Service", g.Name), "INFO")
 	} else {
 		return errors.New("Service Not Running")
