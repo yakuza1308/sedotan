@@ -102,7 +102,7 @@ func TestServiceGrabGet(t *testing.T) {
 	// 	filename = tempLogConf.Get("filename", "").(string)
 	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
 
-	logpath := "E:\\data\\vale\\log"
+	logpath := "E:\\WORKS\\data_test\\vale\\log"
 	filename := "LOG-GRABSHFETEST"
 	filepattern := "20060102"
 
@@ -124,7 +124,7 @@ func TestServiceGrabGet(t *testing.T) {
 	tempDataSetting := DataSetting{}
 	tempDestInfo := DestInfo{}
 
-	tempDataSetting.RowSelector = "#tab_conbox li:nth-child(1) .sjtable .listshuju tbody tr"
+	tempDataSetting.RowSelector = "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
 	tempDataSetting.Column(0, &GrabColumn{Alias: "Code", Selector: "td:nth-child(1)"})
 	tempDataSetting.Column(0, &GrabColumn{Alias: "LongSpeculation", Selector: "td:nth-child(2)"})
 	tempDataSetting.Column(0, &GrabColumn{Alias: "ShortSpeculation", Selector: "td:nth-child(3)"})
@@ -132,7 +132,7 @@ func TestServiceGrabGet(t *testing.T) {
 	xGrabService.ServGrabber.DataSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
 
 	ci := dbox.ConnectionInfo{}
-	ci.Host = "E:\\data\\vale\\Data_GrabTest.csv"
+	ci.Host = "E:\\WORKS\\data_test\\vale\\Data_Grab.csv"
 	ci.Database = ""
 	ci.UserName = ""
 	ci.Password = ""
@@ -157,7 +157,131 @@ func TestServiceGrabGet(t *testing.T) {
 
 		for i := 0; i < 100; i++ {
 			fmt.Printf(".")
-			time.Sleep(3000 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
+		}
+
+		e = xGrabService.StopService()
+		if e != nil {
+			t.Errorf("Error Found : ", e)
+		}
+	}
+}
+
+func TestServiceGrabPost(t *testing.T) {
+
+	xGrabService := newGrabService()
+	xGrabService.Name = "irondcecom"
+	xGrabService.Url = "http://www.dce.com.cn/PublicWeb/MainServlet"
+
+	xGrabService.SourceType = SourceType_Http
+
+	xGrabService.GrabInterval = 5 * time.Minute
+	xGrabService.TimeOutInterval = 1 * time.Minute //time.Hour, time.Minute, time.Second
+
+	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, "seconds")
+
+	//==For Data Grab Config/Data Grabber          ===========================================
+	// tempGrab.ServGrabber = sedotan.NewGrabber(tempGrab.Url, mapVal.Get("calltype", "").(string), &GrabConfig)
+
+	grabConfig := Config{}
+
+	dataurl := toolkit.M{}
+	dataurl["Pu00231_Input.trade_date"] = "20151214"
+	dataurl["Pu00231_Input.variety"] = "i"
+	dataurl["Pu00231_Input.trade_type"] = "0"
+	dataurl["Submit"] = "Go"
+	dataurl["action"] = "Pu00231_result"
+
+	grabConfig.SetFormValues(dataurl)
+
+	// if has grabconfig
+
+	// CallType     string
+	// FormValues   toolkit.M
+	// AuthType     string
+	// AuthUserId   string
+	// AuthPassword string
+	//==================
+
+	xGrabService.ServGrabber = NewGrabber(xGrabService.Url, "POST", &grabConfig)
+
+	//===================================================================
+
+	//==For Data Log          ===========================================
+
+	// 	logpath = tempLogConf.Get("logpath", "").(string)
+	// 	filename = tempLogConf.Get("filename", "").(string)
+	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
+
+	logpath := "E:\\data\\vale\\log"
+	filename := "LOG-GRABDCETEST"
+	filepattern := "20060102"
+
+	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
+	if e != nil {
+		t.Errorf("Error Found : ", e)
+	}
+
+	xGrabService.Log = logconf
+	//===================================================================
+
+	//===================================================================
+	//==Data Setting and Destination Save =====================
+
+	xGrabService.ServGrabber.DataSettings = make(map[string]*DataSetting)
+	xGrabService.DestDbox = make(map[string]*DestInfo)
+
+	// ==For Every Data Setting ===============================
+	tempDataSetting := DataSetting{}
+	tempDestInfo := DestInfo{}
+
+	tempDataSetting.RowSelector = "table .table tbody tr"
+	tempDataSetting.Column(0, &GrabColumn{Alias: "Contract", Selector: "td:nth-child(1)"})
+	tempDataSetting.Column(0, &GrabColumn{Alias: "Open", Selector: "td:nth-child(2)"})
+	tempDataSetting.Column(0, &GrabColumn{Alias: "High", Selector: "td:nth-child(3)"})
+
+	orCondition := []interface{}{}
+	orCondition = append(orCondition, map[string]interface{}{"Contract": "Contract"})
+	orCondition = append(orCondition, map[string]interface{}{"Contract": "Iron Ore Subtotal"})
+	orCondition = append(orCondition, map[string]interface{}{"Contract": "Total"})
+
+	// orCondition[0] = map[string]string{"Contract": "Contract"}
+	// orCondition[1] = map[string]string{"Contract": "Iron Ore Subtotal"}
+	// orCondition[2] = map[string]string{"Contract": "Total"}
+
+	tempDataSetting.RowDeleteCond = toolkit.M{}.Set("$or", orCondition)
+	// -Check "rowdeletecond" in config-
+	// tempDataSetting.RowDeleteCond, e = toolkit.ToM(mapxVal.Get("rowdeletecond", nil).(map[string]interface{}))
+
+	xGrabService.ServGrabber.DataSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
+
+	ci := dbox.ConnectionInfo{}
+	ci.Host = "E:\\data\\vale\\Data_GrabIronTest.csv"
+	ci.Database = ""
+	ci.UserName = ""
+	ci.Password = ""
+	ci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",")
+
+	tempDestInfo.collection = ""
+	tempDestInfo.desttype = "csv"
+
+	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.desttype, &ci)
+	if e != nil {
+		t.Errorf("Error Found : ", e)
+	}
+
+	xGrabService.DestDbox["DATA01"] = &tempDestInfo
+
+	//===================================================================
+
+	e = xGrabService.StartService()
+	if e != nil {
+		t.Errorf("Error Found : ", e)
+	} else {
+
+		for i := 0; i < 100; i++ {
+			fmt.Printf(".")
+			time.Sleep(1000 * time.Millisecond)
 		}
 
 		e = xGrabService.StopService()
