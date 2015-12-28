@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	gq "github.com/PuerkitoBio/goquery"
+	"github.com/eaciit/cast"
 	"github.com/eaciit/toolkit"
 	"net/http"
 	"strings"
@@ -65,6 +66,29 @@ func (c *Config) SetFormValues(parm toolkit.M) {
 	c.FormValues = toolkit.M{}.Set("formvalues", parm)
 }
 
+func (g *Grabber) GetConfig() toolkit.M {
+	parm, found := g.Config.FormValues["formvalues"].(toolkit.M)
+	if found {
+		for key, val := range parm {
+			switch {
+			case strings.Contains(val.(string), "time.Now()"):
+				// time.Now(),
+				// Date2String(YYYYMMDD) = time.Now().Date2String(YYYYMMDD)
+				format := ""
+				if strings.Contains(val.(string), "Date2String") {
+					format = strings.Replace(strings.Replace(val.(string), "time.Now().Date2String(", "", -1), ")", "", -1)
+				}
+
+				parm[key] = cast.Date2String(time.Now(), format)
+			}
+		}
+
+		return toolkit.M{}.Set("formvalues", parm)
+	}
+
+	return nil
+}
+
 func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
 	if i == 0 {
 		ds.ColumnSettings = append(ds.ColumnSettings, column)
@@ -90,7 +114,14 @@ func (g *Grabber) DataByte() []byte {
 
 func (g *Grabber) Grab(parm toolkit.M) error {
 
-	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), g.Config.FormValues)
+	switch g.AuthType {
+	case "session":
+		//Do get session here
+	case "cookie":
+		//Do get cookies here
+	}
+
+	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), g.GetConfig())
 	errorTxt := ""
 	if e != nil {
 		errorTxt = e.Error()
