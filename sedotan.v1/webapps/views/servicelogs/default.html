@@ -1,0 +1,30 @@
+<h1>Service Logs</h1><br/>
+<script>
+var Log = {
+	YourName:ko.observable("Lynch")
+}
+</script>
+<div data-bind="with:Log">
+	<div class="row">
+	     <div class="col-md-12">
+	     Filter
+	     </div>
+	</div>
+	<div class="row">
+	     <div class="col-md-12"> <!-- Container -->
+	     	<div class="row">
+			     <div class="col-md-2">
+			     	Say hi :
+			     </div>
+			     <div class="col-md-10">
+			     	<input type="text" class="form-control" data-bind="value:YourName">
+			     </div>
+			</div>
+			<div class="row">
+			     <div class="col-md-12">
+			     	Hi <span data-bind="text:YourName"></span>, How are you?
+			     </div>
+			</div>
+	     </div>
+	</div>
+</div>

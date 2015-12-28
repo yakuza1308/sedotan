@@ -19,6 +19,7 @@ func init() {
 	app.Controllers()
 	app.Register(&AppController{})
 	app.Register(&DashboardController{})
+	app.Register(new(ServiceLogsController))
 	app.Register(new(ConfigurationController))
 	app.Static("static", wd+"assets")
 	app.LayoutTemplate = "_layout.html"

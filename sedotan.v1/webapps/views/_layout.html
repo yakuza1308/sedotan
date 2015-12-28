@@ -17,6 +17,8 @@
 	<script type="text/javascript" src="/static/js/moment.min.js"></script>
 	<script type="text/javascript" src="/static/js/linq.js"></script>
 	<script type="text/javascript" src="/static/js/custom.js"></script>
+	<script type="text/javascript" src="/static/js/prism.js"></script>
+	
 
 	<script src="/static/js/jszip.min.js"></script>
 	<script src="/static/js/underscore.min.js"></script>
@@ -34,6 +36,7 @@
 	<link rel="stylesheet" type="text/css" href="/static/theme/neon/theme.css">
 	<link rel="stylesheet" type="text/css" href="/static/theme/neon/form.css">
 	<link rel="stylesheet" type="text/css" href="/static/css/default.css">
+	<link rel="stylesheet" type="text/css" href="/static/css/prism.css">
 
 	<script type="text/javascript">
 		var model = {
@@ -310,6 +313,15 @@ model.MainMenus = ko.observableArray([]);
 		        "Configuration",
 		        "/configuration/default",
 		        "Configuration",
+		        [],
+		        baseURL
+		    )
+		);
+		model.MainMenus.push(
+		    new MenuItem(
+		        "ServiceLog",
+		        "/servicelogs/default",
+		        "Service Logs",
 		        [],
 		        baseURL
 		    )
