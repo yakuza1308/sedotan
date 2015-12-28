@@ -25,7 +25,7 @@
           "database": "valegrab",
           "host": "localhost:27017"
         },
-        "desttype": "mongodb",
+        "desttype": "mongo",
         "name": "GoldTab01",
         "rowselector": "#tab_conbox li:nth-child(1) .sjtable .listshuju tbody tr"
       },
@@ -48,7 +48,7 @@
           }
         ],
         "connectioninfo": {
-          "host": "",
+          "host": "E:\\data\\vale\\Data_Grab.csv",
           "settings": {
             "delimiter": ",",
             "useheader": true
@@ -64,7 +64,7 @@
     "logconf": {
       "filename": "LOG-GRABSHFE",
       "filepattern": "20060102",
-      "logpath": "data/logs/SHFE/"
+      "logpath": "E:\\data\\vale\\log"
     },
     "nameid": "goldshfecom",
     "sourcetype": "SourceType_Http",
@@ -93,11 +93,15 @@
           }
         ],
         "connectioninfo": {
-          "collection": "shfegold",
-          "database": "valegrab",
-          "host": "localhost:27017"
+          "collection": "",
+          "database": "",
+          "host": "localhost:27017",
+          "settings": {
+            "delimiter": ",",
+            "useheader": true
+          }
         },
-        "desttype": "mongodb",
+        "desttype": "mongo",
         "name": "GoldTab01",
         "rowselector": "#tab_conbox li:nth-child(1) .sjtable .listshuju tbody tr"
       },
@@ -120,7 +124,7 @@
           }
         ],
         "connectioninfo": {
-          "host": "",
+          "host": "E:\\data\\vale\\Data_Grab.csv",
           "settings": {
             "delimiter": ",",
             "useheader": true
@@ -131,7 +135,7 @@
         "rowselector": "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
       }
     ],
-    "grabinterval": 20,
+    "grabinterval": 32,
     "intervaltype": "seconds",
     "logconf": {
       "filename": "LOG-GRABSHFE",
@@ -139,78 +143,6 @@
       "logpath": "data/logs/SHFE/"
     },
     "nameid": "goldshfecom2",
-    "sourcetype": "SourceType_Http",
-    "timeoutinterval": 5,
-    "url": "http://www.shfe.com.cn/en/products/Gold/"
-  },
-  {
-    "calltype": "GET",
-    "datasetting": [
-      {
-        "columnsettings": [
-          {
-            "alias": "Code",
-            "index": 0,
-            "selector": "td:nth-child(1)"
-          },
-          {
-            "alias": "ListingDate",
-            "index": 0,
-            "selector": "td:nth-child(2)"
-          },
-          {
-            "alias": "ExpirationDate",
-            "index": 0,
-            "selector": "td:nth-child(3)"
-          }
-        ],
-        "connectioninfo": {
-          "collection": "shfegold",
-          "database": "valegrab",
-          "host": "localhost:27017"
-        },
-        "desttype": "mongodb",
-        "name": "GoldTab01",
-        "rowselector": "#tab_conbox li:nth-child(1) .sjtable .listshuju tbody tr"
-      },
-      {
-        "columnsettings": [
-          {
-            "alias": "Code",
-            "index": 0,
-            "selector": "td:nth-child(1)"
-          },
-          {
-            "alias": "LongSpeculation",
-            "index": 0,
-            "selector": "td:nth-child(2)"
-          },
-          {
-            "alias": "ShortSpeculation",
-            "index": 0,
-            "selector": "td:nth-child(3)"
-          }
-        ],
-        "connectioninfo": {
-          "host": "",
-          "settings": {
-            "delimiter": ",",
-            "useheader": true
-          }
-        },
-        "desttype": "csv",
-        "name": "GoldTab02",
-        "rowselector": "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
-      }
-    ],
-    "grabinterval": 20,
-    "intervaltype": "seconds",
-    "logconf": {
-      "filename": "LOG-GRABSHFE",
-      "filepattern": "20060102",
-      "logpath": "data/logs/SHFE/"
-    },
-    "nameid": "goldshfecom3",
     "sourcetype": "SourceType_Http",
     "timeoutinterval": 5,
     "url": "http://www.shfe.com.cn/en/products/Gold/"

@@ -170,3 +170,19 @@ func (a *ConfigurationController) GetData(k *knot.WebContext) interface{} {
 		return data.Data
 	}
 }
+
+func (a *ConfigurationController) GetURL(k *knot.WebContext) interface{} {
+
+	d := struct {
+		URL    string
+		Method string
+	}{}
+	e := k.GetPayload(&d)
+	k.Config.OutputType = knot.OutputJson
+	r, e := tk.HttpCall(d.URL, d.Method, nil, nil)
+	if e != nil {
+		return e.Error()
+	} else {
+		return tk.HttpContentString(r)
+	}
+}

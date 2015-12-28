@@ -38,11 +38,11 @@ type GrabService struct {
 
 type DestInfo struct {
 	dbox.IConnection
-	collection string
-	desttype   string
+	Collection string
+	Desttype   string
 }
 
-func newGrabService() *GrabService {
+func NewGrabService() *GrabService {
 	g := new(GrabService)
 	g.SourceType = SourceType_Http
 	g.GrabInterval = 5 * time.Minute
@@ -87,15 +87,15 @@ func (g *GrabService) execService() {
 
 					e = g.DestDbox[key].IConnection.Connect()
 					if e != nil {
-						g.Log.AddLog(fmt.Sprintf("[%s-%s] Connect to destination failed [%s-%s]:%s", g.Name, key, g.DestDbox[key].desttype, g.DestDbox[key].IConnection.Info().Host, e), "ERROR")
+						g.Log.AddLog(fmt.Sprintf("[%s-%s] Connect to destination failed [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e), "ERROR")
 						continue
 					}
 
 					var q dbox.IQuery
-					if g.DestDbox[key].collection == "" {
+					if g.DestDbox[key].Collection == "" {
 						q = g.DestDbox[key].IConnection.NewQuery().SetConfig("multiexec", true).Save()
 					} else {
-						q = g.DestDbox[key].IConnection.NewQuery().SetConfig("multiexec", true).From(g.DestDbox[key].collection).Save()
+						q = g.DestDbox[key].IConnection.NewQuery().SetConfig("multiexec", true).From(g.DestDbox[key].Collection).Save()
 					}
 
 					for x, doc := range docs {
@@ -103,7 +103,7 @@ func (g *GrabService) execService() {
 							doc[key] = strings.TrimSpace(fmt.Sprintf("%s", val))
 						}
 
-						if g.DestDbox[key].desttype == "mongo" {
+						if g.DestDbox[key].Desttype == "mongo" {
 							doc["_id"] = x
 						}
 
@@ -111,7 +111,7 @@ func (g *GrabService) execService() {
 							"data": doc,
 						})
 						if e != nil {
-							g.Log.AddLog(fmt.Sprintf("[%s-%s] Unable to insert [%s-%s]:%s", g.Name, key, g.DestDbox[key].desttype, g.DestDbox[key].IConnection.Info().Host, e), "ERROR")
+							g.Log.AddLog(fmt.Sprintf("[%s-%s] Unable to insert [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e), "ERROR")
 						}
 					}
 					q.Close()

@@ -102,7 +102,7 @@ func TestServiceGrabGet(t *testing.T) {
 	// 	filename = tempLogConf.Get("filename", "").(string)
 	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
 
-	logpath := "E:\\data\\vale\\log"
+	logpath := "E:\\WORKS\\data_test\\vale\\log"
 	filename := "LOG-GRABSHFETEST"
 	filepattern := "20060102"
 
@@ -132,7 +132,7 @@ func TestServiceGrabGet(t *testing.T) {
 	xGrabService.ServGrabber.DataSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
 
 	ci := dbox.ConnectionInfo{}
-	ci.Host = "E:\\data\\vale\\Data_GrabTest.csv"
+	ci.Host = "E:\\WORKS\\data_test\\vale\\Data_Grab.csv"
 	ci.Database = ""
 	ci.UserName = ""
 	ci.Password = ""

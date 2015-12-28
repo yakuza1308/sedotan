@@ -1,4 +1,19 @@
 <style>
+#sourceCodeWrapper{
+	overflow-x:scrollable;
+}
+#sourceCodeWrapper > div:hover{
+	background: #FFF7EA;
+    padding-left: 0px;
+    border: 1px solid #EF8F00;
+    cursor: pointer;
+}
+#sourceCodeWrapper >div.active{
+	background: #EAFFF9;
+    padding-left: 0px;
+    border: 1px solid #00C3EF;
+    cursor: pointer;
+}
 iframe{
 	border:1px solid #DDD;
 }
@@ -57,6 +72,7 @@ iframe{
 		Data:ko.observableArray([]),
 		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
+		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
 		url:ko.observable(""),
 		nameid:ko.observable(""),
 		calltype:ko.observable("GET"),
@@ -84,7 +100,11 @@ iframe{
 		// Data Setting
 		ActiveData:ko.observable(0),
 		isEdit:ko.observable(false),
+		isSelecting:ko.observable(false),
+		selectingWhat:ko.observable(""),
+		selectedItem:ko.observable("")
 	}
+	var URLSource = "";
 </script>
 
 <div  data-bind="with:Config">
@@ -98,10 +118,16 @@ iframe{
 		</div>
 	</div>
 	<div class="row"  data-bind="visible:isFormActive()">
-		<div class="col-md-8">
+		<div class="col-md-7">
 			<div class="input-group">
 			  <span class="input-group-addon">Input URL</span>
 			  <input type="text" class="form-control" data-bind="value:url">
+			</div>
+		</div>
+		<div class="col-md-2">
+			<div class="input-group">
+			  <span class="input-group-addon">Call Type</span>
+			  <input type="text" class="form-control" data-bind="kendoDropDownList:{value:calltype,data:calltypeList}" />
 			</div>
 		</div>
 		<div class="col-md-3">
@@ -122,7 +148,17 @@ iframe{
 					<h3 data-bind="visible:ProcessNumber()==3">Grabber - Set Up &raquo; Preview</h3>
 				</div>
 			</div>
-			
+			<div class="row" data-bind="visible:isSelecting()">
+				<div class="col-md-12 align-right">
+					<button class="btn btn-xs btn-success" data-bind="click:CompleteSelection"><span class="fa fa-check-circle"></span> Done</button>&nbsp;
+					<button class="btn btn-xs btn-warning" data-bind="click:CancelSelection"><span class="fa fa-mail-reply-all"></span> Cancel</button>
+				</div>
+				<div class="col-md-12">&nbsp;</div>
+				<div class="col-md-12">
+					<div id="sourceCodeWrapper">
+					</div>
+				</div>
+			</div>
 			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==1">
 				<div class="row">
 					<label class="col-md-5">
@@ -130,14 +166,6 @@ iframe{
 					</label>
 					<div class="col-md-7">
 						<input type="text" data-bind="value:nameid" class="form-control"/>
-					</div>
-				</div>
-				<div class="row">
-					<label class="col-md-5">
-						Call Type
-					</label>
-					<div class="col-md-7">
-						<input type="text" data-bind="kendoDropDownList:{value:calltype,data:calltypeList}" />
 					</div>
 				</div>
 				<div class="row">
@@ -174,7 +202,7 @@ iframe{
 				</div>
 			</div>
 
-			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==2">
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==2&&!isSelecting()">
 				<div class="row">
 					<label class="col-md-12">
 						List :
@@ -215,7 +243,10 @@ iframe{
 						</div>
 						<div class="row">
 							<label class="col-md-5">
-								Row Selector
+								Row Selector&nbsp;
+								<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
+									<span class="fa fa-search"></span>
+								</button>
 							</label>
 							<div class="col-md-7">
 								<input type="text" data-bind="value:rowselector" class="form-control"/>
@@ -244,7 +275,14 @@ iframe{
 												<input type="text" class="form-control" data-bind="value:alias"/>
 											</td>
 											<td>
-												<input type="text" class="form-control" data-bind="value:selector"/>
+												<div class="input-group">
+													<input type="text" class="form-control" data-bind="value:selector"/>
+											      	<span class="input-group-btn">
+											        	<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetColumnSettings('+$index()+')'}">
+															<span class="fa fa-search"></span>
+														</button>
+											      	</span>
+											    </div>
 											</td>
 										</tr>
 									</tbody>
@@ -375,7 +413,7 @@ iframe{
 				</div>
 			</div>
 
-			<div class="row">
+			<div class="row" data-bind="visible:!Config.isSelecting()">
 				<div class="col-md-12 align-right">
 					<button class="btn btn-primary" data-bind="visible:ProcessNumber()==2" onclick="Config.AddData();">Add More Data</button>
 
@@ -393,6 +431,34 @@ iframe{
 	</div>
 </div>
 <script type="text/javascript">
+	Config.GetColumnSettings = function(index){
+		Config.isSelecting(true);
+		Config.selectingWhat("columnsettings"+index);
+	}
+	Config.GetRowSelector = function(index){
+		Config.isSelecting(true);
+		Config.selectingWhat("rowselector"+index);
+	}
+	Config.CompleteSelection = function(){
+		var selectedItem = Config.selectedItem();
+		var selectingWhat = Config.selectingWhat();
+		$("*.selector").attr("class","selector");
+		
+		var selectingIndex = 0;
+		if(selectingWhat.indexOf("rowselector") == 0){
+			selectingIndex = parseInt(selectingWhat.substr(11));
+			Config.datasetting()[selectingIndex].rowselector(selectedItem)
+		}else{
+			selectingIndex = parseInt(selectingWhat.substr(14));
+			Config.datasetting()[Config.ActiveData()].columnsettings()[0].selector(selectedItem);
+		}
+		Config.isSelecting(false);
+		Config.selectingWhat("");
+	}
+	Config.CancelSelection = function(){
+		Config.isSelecting(false);
+		Config.selectingWhat("");	
+	}
 	Config.AddNew = function(){
 		Config.isFormActive(true);
 		Config.isEdit(false);
@@ -416,7 +482,68 @@ iframe{
 		Config.isURLSet(true);
 		window.open(Config.url(),"URLPreview");
 		Config.datasetting.push(new BaseData());
+
+		var url = "{{BaseUrl}}configuration/geturl";
+		var parm = {
+			URL:Config.url(),
+			Method:Config.calltype()
+		};
+		ajaxPost(url,parm,function(res){
+			var startofbody = res.indexOf("<body");
+			var endofbody = res.indexOf("</body");
+			var body = res.substr(startofbody,endofbody-startofbody);
+			startofbody = body.indexOf(">");
+			body = body.substr(startofbody+1);
+			// console.log()
+			URLSource = $.parseHTML(body)
+			$(URLSource).each(function(i,e){
+			 if($(this).html()!==undefined){
+			 	Config.GetElement($(this),0,i,"body");
+			 }
+			})
+			// $("#sourceCodeWrapper").text(body);
+			// $("#cssCodeWrapper").html("p { color: red }");
+	        // alert("Configuration succesfully saved");
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
 	}
+	Config.GetElement = function(obj,parent,index,selector){
+		var classes = obj.attr("class");
+		var id = obj.attr("id");
+		if( id !== undefined && id !== "" ){
+			id = "id='"+id+"'";
+		}else{
+			id = "";
+		}
+		if( classes !== undefined && classes !== "" ){
+			classes = "class='"+classes+"'";
+		}else{
+			classes = "";
+		}
+		if(id!==""){
+			selector+=">"+obj.get()[0].nodeName.toLowerCase()+"#"+obj.attr("id").split(" ")[0];
+		}else if(classes!==""){
+			selector+=">"+obj.get()[0].nodeName.toLowerCase()+"."+obj.attr("class").split(" ")[0];
+		}
+		
+		var str = "<"+obj.get()[0].nodeName.toLowerCase()+" "+id+" "+classes+">..";
+		var style = "style='padding-left:"+parseFloat(parent)*10+"px'";
+		$("#sourceCodeWrapper").append("<div id='scw"+parent+index+"' "+style+" class='selector'></div>");
+		$("#scw"+parent+index).text(str);
+		$("#scw"+parent+index).attr("onclick","Config.GetCurrentSelector('"+"scw"+parent+index+"','"+selector+"')");
+		obj.children().each(function(i,e){
+			Config.GetElement($(this),parent+1,i,selector);
+		})
+	}
+
+	Config.GetCurrentSelector = function(id,selector){
+		$("*.selector").attr("class","selector");
+		$("#"+id).attr("class","selector active");
+		Config.selectedItem(selector);
+	}
+
 	Config.Save = function(){
 		Config.grabinterval(parseFloat(Config.grabinterval()));
 		Config.timeoutinterval(parseFloat(Config.timeoutinterval()));
@@ -435,6 +562,10 @@ iframe{
 		delete data["ProcessTotal"]
 		delete data["ActiveData"]
 		delete data["isEdit"]
+		delete data["isSelecting"]
+		delete data["selectingWhat"]
+		delete data["selectedItem"]
+		
 		
 		for(var i in data.datasetting()){
 			switch(data.datasetting()[i].desttype()){
