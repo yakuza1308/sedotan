@@ -66,9 +66,8 @@ func (c *Config) SetFormValues(parm toolkit.M) {
 	c.FormValues = toolkit.M{}.Set("formvalues", parm)
 }
 
-func (g *Grabber) GetFormValues() toolkit.M {
+func (g *Grabber) GetConfig() toolkit.M {
 	parm, found := g.Config.FormValues["formvalues"].(toolkit.M)
-
 	if found {
 		for key, val := range parm {
 			switch {
@@ -86,6 +85,7 @@ func (g *Grabber) GetFormValues() toolkit.M {
 
 		return toolkit.M{}.Set("formvalues", parm)
 	}
+
 	return nil
 }
 
@@ -114,7 +114,14 @@ func (g *Grabber) DataByte() []byte {
 
 func (g *Grabber) Grab(parm toolkit.M) error {
 
-	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), g.GetFormValues())
+	switch g.AuthType {
+	case "session":
+		//Do get session here
+	case "cookie":
+		//Do get cookies here
+	}
+
+	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), g.GetConfig())
 	errorTxt := ""
 	if e != nil {
 		errorTxt = e.Error()

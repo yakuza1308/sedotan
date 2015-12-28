@@ -101,22 +101,6 @@ func TestPost(t *testing.T) {
 	dataurl["Submit"] = "Go"
 	dataurl["action"] = "Pu00231_result"
 
-	// postdata := toolkit.M{}.Set("formvalues", dataurl)
-	// fmt.Println(postdata)
-
-	// str := `{
-	//            "formvalues":
-	//              {
-	//                "Pu00231_Input.trade_date": "20151214",
-	//                "Pu00231_Input.variety": "i",
-	//                "Pu00231_Input.trade_type": "0",
-	//                "Submit": "Go",
-	//                "action": "Pu00231_result"
-	//              }
-	//          }`
-	// res := toolkit.M{}
-	// json.Unmarshal([]byte(str), &res)
-
 	GrabConfig.SetFormValues(dataurl)
 	g := NewGrabber(url, "POST", &GrabConfig)
 	// fmt.Println(g.Config.PostData)
