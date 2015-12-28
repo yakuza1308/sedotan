@@ -1,6 +1,7 @@
 <style>
 #sourceCodeWrapper{
-	overflow-x:scrollable;
+	overflow:scroll;
+	height: 350px;
 }
 #sourceCodeWrapper > div:hover{
 	background: #FFF7EA;
@@ -72,8 +73,8 @@ iframe{
 		Data:ko.observableArray([]),
 		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
-		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
-		url:ko.observable(""),
+		url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
+		// url:ko.observable(""),
 		nameid:ko.observable(""),
 		calltype:ko.observable("GET"),
 		sourcetype:ko.observable("SourceType_Http"),
@@ -153,6 +154,9 @@ iframe{
 					<button class="btn btn-xs btn-success" data-bind="click:CompleteSelection"><span class="fa fa-check-circle"></span> Done</button>&nbsp;
 					<button class="btn btn-xs btn-warning" data-bind="click:CancelSelection"><span class="fa fa-mail-reply-all"></span> Cancel</button>
 				</div>
+				<div class="col-md-12">&nbsp;</div>
+				<div class="col-md-12">Selected Item :</div>
+				<div class="col-md-12" data-bind="text:selectedItem"></div>
 				<div class="col-md-12">&nbsp;</div>
 				<div class="col-md-12">
 					<div id="sourceCodeWrapper">
@@ -243,13 +247,17 @@ iframe{
 						</div>
 						<div class="row">
 							<label class="col-md-5">
-								Row Selector&nbsp;
-								<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
-									<span class="fa fa-search"></span>
-								</button>
+								Row Selector
 							</label>
 							<div class="col-md-7">
-								<input type="text" data-bind="value:rowselector" class="form-control"/>
+								<div class="input-group">
+									<input type="text" data-bind="value:rowselector" class="form-control"/>
+									<span class="input-group-btn">
+										<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
+											<span class="fa fa-search"></span>
+										</button>
+									</span>
+								</div>
 							</div>
 						</div>
 						<div class="row">
@@ -480,7 +488,8 @@ iframe{
 	}
 	Config.GetURL = function(){
 		Config.isURLSet(true);
-		window.open(Config.url(),"URLPreview");
+		// window.open(Config.url(),"URLPreview");
+		Config.datasetting([]);
 		Config.datasetting.push(new BaseData());
 
 		var url = "{{BaseUrl}}configuration/geturl";
@@ -489,6 +498,20 @@ iframe{
 			Method:Config.calltype()
 		};
 		ajaxPost(url,parm,function(res){
+			var BaseUrl = Config.url().substr(0,Config.url().substr(Config.url().indexOf("www")).indexOf("/")+Config.url().indexOf("www")+1);
+
+			// var findcss = new RegExp("href=\"/", 'g');
+			// var findjs = new RegExp("src=\"/", 'g');
+			// res = res.replace(findcss,"href=\""+BaseUrl);
+			// res = res.replace(findjs,"src=\""+BaseUrl);
+			var find = new RegExp("=\"/", 'g');
+			res = res.replace(find,"=\""+BaseUrl);
+			
+
+			var doc = document.getElementById('URLPreview').contentWindow.document;
+			doc.open();
+			doc.write(res);
+			doc.close();
 			var startofbody = res.indexOf("<body");
 			var endofbody = res.indexOf("</body");
 			var body = res.substr(startofbody,endofbody-startofbody);
@@ -541,7 +564,23 @@ iframe{
 	Config.GetCurrentSelector = function(id,selector){
 		$("*.selector").attr("class","selector");
 		$("#"+id).attr("class","selector active");
+		var existingStyle = $(Config.selectedItem(), $("#URLPreview").contents()).attr("style");
+		if(existingStyle!==undefined){
+			existingStyle = existingStyle.replace("border:5px solid #FF9900;","");
+		}
+		$(Config.selectedItem(), $("#URLPreview").contents()).attr("style",existingStyle);
+		$("body", $("#URLPreview").contents()).scrollTop($(selector, $("#URLPreview").contents()).offset().top)
+		
 		Config.selectedItem(selector);
+		// existingStyle = "";
+		// existingStyle = $(selector, $("#URLPreview").contents()).attr("style");
+		// console.log(existingStyle);
+		// if(existingStyle!==undefined){
+		// 	existingStyle += existingStyle+"border:5px solid #FF9900;"
+		// }else{
+		// 	existingStyle += "border:5px solid #FF9900;"
+		// }
+		$(selector, $("#URLPreview").contents()).attr("style","border:5px solid #FF9900");
 	}
 
 	Config.Save = function(){
