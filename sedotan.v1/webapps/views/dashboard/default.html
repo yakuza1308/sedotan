@@ -165,6 +165,7 @@ var grid = $("#grid").data("kendoGrid");
 function startService(e) {
     e.preventDefault();
     var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+    console.log(dataItem);
     var obj = new Object();
     obj.NameId = dataItem.nameid;
     $.ajax({
@@ -173,7 +174,7 @@ function startService(e) {
             type: "POST",
             data: JSON.stringify(obj),
             success: function(data) {
-                console.log(data);
+                
                 if (data){
                     // var grid = $("#grid").data("kendoGrid");
                     var index
@@ -265,7 +266,8 @@ function checkStat(nameid, interval, uid, index){
         dataType: "json",
         type: "POST",
         data: JSON.stringify(obj),
-        success: function(data) {            
+        success: function(data) {    
+        console.log(data)        
             var dataGrid = grid.dataSource.at(index);
             var dateNow = (typeof data.dateNow === "undefined")? "" : data.dateNow;
             var timeNow = (typeof data.timeNow === "undefined")? "" : data.timeNow;
