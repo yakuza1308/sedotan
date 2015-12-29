@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/csv"
@@ -35,11 +36,6 @@ var (
 	grabber  *sdt.Grabber
 )
 
-// func NewGrabModule() *GrabModule {
-// 	g := new(GrabModule)
-// 	return g
-// }
-
 func Process(datas []interface{}) (string, bool) {
 	var (
 		status    string
@@ -48,11 +44,6 @@ func Process(datas []interface{}) (string, bool) {
 	for _, v := range datas {
 		vToMap, _ := toolkit.ToM(v)
 		grabs, _ = GrabConfig(vToMap)
-		// if strings.ToLower(vToMap["calltype"].(string)) == "post" {
-		// 	grabs, _ = GrabPostConfig(vToMap)
-		// } else {
-		// 	grabs, _ = GrabGetConfig(vToMap)
-		// }
 	}
 
 	status, isServRun = StartService(grabs)
@@ -162,6 +153,7 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 			pwd = connToMap["username"].(string)
 		}
 		ci := dbox.ConnectionInfo{}
+		fmt.Println(connToMap["host"].(string))
 		ci.Host = connToMap["host"].(string) //"E:\\data\\vale\\Data_GrabIronTest.csv"
 		ci.Database = db
 		ci.UserName = usr
@@ -282,36 +274,32 @@ func ReadLog(logConf interface{}, isRun bool, name string) interface{} {
 	}
 	defer openLogFile.Close()
 
-	buf := make([]byte, 85)
-	stat, e := os.Stat(logFile)
-	start := stat.Size() - 85
+	scanner := bufio.NewScanner(openLogFile)
+	i := 0
+	var lastLine string
+	for scanner.Scan() {
+		i++
+		lastLine = scanner.Text()
 
-	_, e = openLogFile.ReadAt(buf, start)
-	if e != nil {
-		grabsStatus["error"] = e.Error()
-		grabsStatus["name"] = name
-		grabsStatus["isRun"] = isRun
-		return grabsStatus
+		lastNum := i - 1
+		if i == lastNum {
+			break
+		}
 	}
 
-	splits := strings.Split(string(buf), "\n")
-	var split []string
-	if splits[0] != "" {
-		split = strings.Split(splits[0], " ")
-	} else {
-		split = strings.Split(splits[1], " ")
-	}
+	if lastLine != "" {
+		splits := strings.Split(lastLine, " ")
+		if splits[0] == "INFO" {
+			grabStat = true
+		} else if splits[0] == "ERROR" {
+			grabStat = false
+		}
 
-	if split[0] == "INFO" {
-		grabStat = true
-	} else {
-		grabStat = false
+		grabsStatus["note"] = strings.Join(splits[4:], " ")
+		grabsStatus["dateNow"] = splits[1]
+		grabsStatus["timeNow"] = splits[2]
+		grabsStatus["status"] = grabStat
 	}
-
-	grabsStatus["note"] = strings.Join(split[4:], " ")
-	grabsStatus["dateNow"] = split[1]
-	grabsStatus["timeNow"] = split[2]
-	grabsStatus["status"] = grabStat
 	grabsStatus["name"] = name
 	grabsStatus["isRun"] = isRun
 

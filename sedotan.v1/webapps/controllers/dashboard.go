@@ -91,9 +91,6 @@ func (a *DashboardController) Stopservice(k *knot.WebContext) interface{} {
 
 	ds, _ := Getquery(t.NameId)
 	_, isRun := modules.StopProcess(ds)
-	// var grabName = map[string]interface{}{}
-	// grabName["name"] = name
-	// grabName["stat"] = isRun
 
 	return isRun
 }

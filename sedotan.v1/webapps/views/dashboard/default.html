@@ -3,37 +3,15 @@
 <div id="grid">
 </div>
 
-<div  data-bind="with:Dashboard">
-    <div class="row">
-         <div class="col-md-12">
-         Dashboard Page
-         </div>
-    </div>
-
-    <div class="row">
-         <div class="col-md-4">
-         Cok jenengmu sopo
-         </div>
-         <div class="col-md-8">
-         <input type="text" data-bind="value:Jenengku"/>
-         </div>
-    </div>
-
-    <div class="row">
-         <div class="col-md-12">
-         Nek jenengku <span data-bind="text:Jenengku"></span> kon kate lapo
-         </div>
-    </div>
-</div>
 <style>
 .critical {
-    background-color: #d9534f;
+    background-color: #c9302c;
     font-weight: bold;
     color: #fff;
 }
 
 .stop {
-    background-color: #777;
+    background-color: #f0ad4e;
     font-weight: bold;
     color: #fff;
 }
@@ -44,7 +22,9 @@
     color: #fff;
 }
 </style>
-
+<script id="command-template" type="text/x-kendo-template">
+    <a class="k-button k-grid-start btn btn-info">#= data.status == "STOP" ? "Start" : "Stop" #</a>
+</script>
 <script>
 var localdata = {}
 $.ajax({
@@ -91,7 +71,7 @@ var commonSettings = {
     columns: [{
         field: "status",
         title: "STATUS",
-        width: 100
+        // width: 100
     }, {
         field: "nameid",
         title: "NAME ID"
@@ -111,21 +91,9 @@ var commonSettings = {
         field: "note",
         title: "NOTE"
     }, {
-        command:[
-        {
-            text: "Start",
-            name: "start",
-            className: "btn btn-success",
-            click: startService
-        },
-        {
-            text: "Stop",
-            name: "stop",
-            className: "btn btn-default",
-            click: stopService
-        }
-        ], width: "165px"
-    }]
+        template: kendo.template($("#command-template").html())
+    }
+    ]
 }
 
 function getStatusClass(stat){
@@ -159,140 +127,54 @@ $("#grid").kendoGrid($.extend({
     }
 }, commonSettings));
 
-// $("#grid").kendoGrid({
-//     dataSource: localDataSources,
-//     height: 550,
-//     sortable: true,
-//     pageable: {
-//         refresh: true,
-//         pageSizes: true,
-//         buttonCount: 5
-//     },
-//     columns: [{
-//         field: "status",
-//         title: "STATUS",
-//         width: 100
-//     }, {
-//         field: "nameid",
-//         title: "NAME ID"
-//     }, {
-//         field: "url",
-//         title: "SOURCE"
-//     }, {
-//         field: "grabinterval",
-//         title: "INTERVAL"
-//     }, {
-//         field: "lastGrab",
-//         title: "LAST GRAB"
-//     }, {
-//         field: "grabStat",
-//         title: "GRAB STAT"
-//     }, {
-//         field: "note",
-//         title: "NOTE"
-//     }, {
-//         command:[
-//         {
-//             text: "Start",
-//             name: "start",
-//             className: "btn btn-success",
-//             click: startService
-//         },
-//         {
-//             text: "Stop",
-//             name: "stop",
-//             className: "btn btn-default",
-//             click: stopService
-//         }
-//         ], width: "165px"
-//     }]
-// });
-
 
 var grid = $("#grid").data("kendoGrid");
 var gridDataSource = grid.dataSource
-function startService(e) {
-    e.preventDefault();
-    var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
-    
+function startService(nameid, uid) {
     var obj = new Object();
-    obj.NameId = dataItem.nameid;
+    obj.NameId = nameid;
     $.ajax({
-            url: "{{BaseUrl}}dashboard/startservice",
-            dataType: "json",
-            type: "POST",
-            data: JSON.stringify(obj),
-            success: function(data) {
-                if (data){
-                    $.each(grid.dataSource.data(), function(key, val){
-                        if (val.nameid == dataItem.nameid){
-                            var dataGrid = grid.dataSource.at(key);                            
-                            dataGrid.set("status","RUN");
-                            console.log(dataGrid)
-                            var currenRow = grid.table.find("tr[data-uid='" + dataGrid.uid + "']");
-                            var startButton = $(currenRow).find(".k-grid-start");
-                            startButton.removeClass("btn-success")
-                            startButton.addClass("btn-default");
-
-                            var stopButton = $(currenRow).find(".k-grid-stop");
-                            stopButton.removeClass("btn-default")
-                            stopButton.addClass("btn-danger");
-                        }                    
-                    });
-                }
-            },
-            error: function(e) {
-                console.log(e);
-            }
-        });
+        url: "{{BaseUrl}}dashboard/startservice",
+        dataType: "json",
+        type: "POST",
+        data: JSON.stringify(obj),
+        success: function(data) {
+            console.log(data);
+        },
+        error: function(e) {
+            console.log(e);
+        }
+    });
 }
 
-// $("#grid").on("click", ".k-grid-start", function(e) {
-//     e.preventDefault();
-    
-//     var rowData = grid.dataItem($(e.currentTarget).closest("tr"));      
-//     rowData.set("status","RUN");    
-//     var currenRow = grid.table.find("tr[data-uid='" + rowData.uid + "']");
-//     var startButton = $(currenRow).find(".k-grid-start");
-//     startButton.removeClass("btn-success")
-//     startButton.addClass("btn-default");
+$("#grid").on("click", ".k-grid-start", function(e) {
+    var curBtn = $(e.target);
+    var tr = $(e.target).closest("tr"); // get the current table row (tr)
+    var data = grid.dataItem(tr);
+    var selected = data.status;
+   
+    if (selected == "STOP" || selected == undefined) {
+        data.set("status", "RUN");
+        curBtn.text('Stop');
+        startService(data.nameid, data.uid)
+    }else{
+        data.set("status", "STOP");
+        curBtn.text('Start');
+        stopService(data.nameid, data.uid)
+    }
+});
 
-//     var stopButton = $(currenRow).find(".k-grid-stop");
-//     stopButton.removeClass("btn-default")
-//     stopButton.addClass("btn-danger");
 
-//     startButton.text("Stop")
-// });
-
-
-function stopService(e){
-    e.preventDefault();
-    var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+function stopService(nameid, uid){
     var obj = new Object();
-    obj.NameId = dataItem.nameid;
+    obj.NameId = nameid;
     $.ajax({
         url: "{{BaseUrl}}dashboard/stopservice",
         dataType: "json",
         type: "POST",
         data: JSON.stringify(obj),
         success: function(data) {
-            if (!data){
-                $.each(grid.dataSource.data(), function(key, val){
-                    if (val.nameid == dataItem.nameid){  
-                        var dataGrid = grid.dataSource.at(key);                        
-                        dataGrid.set("status","STOP");
-                        console.log(dataGrid)
-                        var currenRow = grid.table.find("tr[data-uid='" + dataGrid.uid + "']");
-                        var startButton = $(currenRow).find(".k-grid-start");
-                        startButton.removeClass("btn-default")
-                        startButton.addClass("btn-success");
-
-                        var stopButton = $(currenRow).find(".k-grid-stop");
-                        stopButton.removeClass("btn-danger")
-                        stopButton.addClass("btn-default");
-                    }                    
-                });
-            }
+            console.log(data)
         },
         error: function(e) {
             console.log(e);
@@ -314,8 +196,7 @@ function checkStat(nameid, interval, uid, index){
         dataType: "json",
         type: "POST",
         data: JSON.stringify(obj),
-        success: function(data) {    
-            console.log(index)
+        success: function(data) {
             if (data.name == nameid) {
                 if (data.isRun){
                     var dataGrid = gridDataSource.at(index);
@@ -333,22 +214,13 @@ function checkStat(nameid, interval, uid, index){
 }
 
 function runStatus(data, dataGrid, uid){
+    console.log(data)
     var dateNow = (typeof data.dateNow === "undefined")? "" : data.dateNow;
     var timeNow = (typeof data.timeNow === "undefined")? "" : data.timeNow;
     dataGrid.set("lastGrab", dateNow+" "+timeNow)
     dataGrid.set("grabStat", data.status)
     dataGrid.set("note", data.note)
-    dataGrid.set("status","RUN");                
-
-    var uiddata = (uid == 0)? dataGrid.uid : uid    
-    var currenRow = grid.table.find("tr[data-uid='" + uiddata + "']");
-    var startButton = $(currenRow).find(".k-grid-start");
-    startButton.removeClass("btn-success")
-    startButton.addClass("btn-default");
-
-    var stopButton = $(currenRow).find(".k-grid-stop");
-    stopButton.removeClass("btn-default")
-    stopButton.addClass("btn-danger");
+    dataGrid.set("status","RUN");
 }
 
 function stopStatus(data, dataGrid, uid){
@@ -358,19 +230,7 @@ function stopStatus(data, dataGrid, uid){
     dataGrid.set("grabStat", data.status)
     dataGrid.set("note", data.note)
     dataGrid.set("status","STOP");
-    
-    var uiddata = (uid == 0)? dataGrid.uid : uid
-    var currenRow = grid.table.find("tr[data-uid='" + uiddata + "']");
-    var startButton = $(currenRow).find(".k-grid-start");
-    startButton.removeClass("btn-default")
-    startButton.addClass("btn-success");
-
-    var stopButton = $(currenRow).find(".k-grid-stop");
-    stopButton.removeClass("btn-danger")
-    stopButton.addClass("btn-default");
 }
 
-var Dashboard = {
-    Jenengku:ko.observable("Ainur")
-}
+
 </script>
