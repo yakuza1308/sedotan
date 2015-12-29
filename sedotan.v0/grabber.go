@@ -7,9 +7,18 @@ import (
 	"github.com/eaciit/cast"
 	"github.com/eaciit/toolkit"
 	"net/http"
+	"net/http/cookiejar"
 	"strings"
 	"time"
 )
+
+// type AuthTypeEnum int
+
+// const (
+// 	AuthType_Session AuthTypeEnum = iota
+// 	AuthType_Cookie
+// 	AuthType_Basic
+// )
 
 type GrabColumn struct {
 	Alias     string
@@ -28,6 +37,9 @@ type Config struct {
 	AuthType     string
 	AuthUserId   string
 	AuthPassword string
+	LoginValues  toolkit.M
+	LoginUrl     string
+	LogoutUrl    string
 }
 
 type DataSetting struct {
@@ -66,14 +78,14 @@ func (c *Config) SetFormValues(parm toolkit.M) {
 	c.FormValues = toolkit.M{}.Set("formvalues", parm)
 }
 
-func (g *Grabber) GetConfig() toolkit.M {
+func (g *Grabber) GetConfig() (toolkit.M, error) {
+	retValue := toolkit.M{}
 	parm, found := g.Config.FormValues["formvalues"].(toolkit.M)
 	if found {
 		for key, val := range parm {
 			switch {
 			case strings.Contains(val.(string), "time.Now()"):
-				// time.Now(),
-				// Date2String(YYYYMMDD) = time.Now().Date2String(YYYYMMDD)
+				// time.Now(), Date2String(YYYYMMDD) = time.Now().Date2String(YYYYMMDD)
 				format := ""
 				if strings.Contains(val.(string), "Date2String") {
 					format = strings.Replace(strings.Replace(val.(string), "time.Now().Date2String(", "", -1), ")", "", -1)
@@ -83,10 +95,22 @@ func (g *Grabber) GetConfig() toolkit.M {
 			}
 		}
 
-		return toolkit.M{}.Set("formvalues", parm)
+		retValue.Set("formvalues", parm)
 	}
 
-	return nil
+	switch {
+	case ((g.AuthType == "session" || g.AuthType == "cookie") && g.LoginValues != nil):
+		tConfig := toolkit.M{}
+		tConfig.Set("loginvalues", g.LoginValues)
+		jar, e := toolkit.HttpGetCookieJar(g.LoginUrl, g.CallType, tConfig)
+		if e != nil {
+			return nil, e
+		}
+
+		retValue.Set("cookie", jar)
+	}
+
+	return retValue, nil
 }
 
 func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
@@ -113,27 +137,38 @@ func (g *Grabber) DataByte() []byte {
 }
 
 func (g *Grabber) Grab(parm toolkit.M) error {
+	errorTxt := ""
 
-	switch g.AuthType {
-	case "session":
-		//Do get session here
-	case "cookie":
-		//Do get cookies here
+	sendConf, e := g.GetConfig()
+	if e != nil {
+		return fmt.Errorf("Unable to grab %s, GetConfig Error found %s", g.URL, e.Error())
 	}
 
-	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), g.GetConfig())
-	errorTxt := ""
+	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), sendConf)
 	if e != nil {
 		errorTxt = e.Error()
 	} else if r.StatusCode != 200 {
 		errorTxt = r.Status
 	}
+
 	if errorTxt != "" {
 		return fmt.Errorf("Unable to grab %s. %s", g.URL, errorTxt)
 	}
 
 	g.Response = r
 	g.bodyByte = toolkit.HttpContent(r)
+
+	//Logout ====
+	if sendConf.Has("cookie") {
+		tjar := sendConf.Get("cookie", nil).(*cookiejar.Jar)
+		if tjar != nil && g.LogoutUrl != "" {
+			_, e := toolkit.HttpCall(g.LogoutUrl, g.CallType, g.DataByte(), toolkit.M{}.Set("cookie", tjar))
+			if e != nil {
+				return fmt.Errorf("Unable to logout %s, grab logout Error found %s", g.LogoutUrl, e.Error())
+			}
+		}
+	}
+
 	return nil
 }
 
