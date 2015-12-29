@@ -90,12 +90,12 @@ func (a *DashboardController) Stopservice(k *knot.WebContext) interface{} {
 	}
 
 	ds, _ := Getquery(t.NameId)
-	name, isRun := modules.StopProcess(ds)
-	var grabName = map[string]interface{}{}
-	grabName["name"] = name
-	grabName["stat"] = isRun
+	_, isRun := modules.StopProcess(ds)
+	// var grabName = map[string]interface{}{}
+	// grabName["name"] = name
+	// grabName["stat"] = isRun
 
-	return grabName
+	return isRun
 }
 
 func (a *DashboardController) Stat(k *knot.WebContext) interface{} {
