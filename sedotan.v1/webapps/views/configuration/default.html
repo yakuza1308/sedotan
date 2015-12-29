@@ -73,8 +73,8 @@ iframe{
 		Data:ko.observableArray([]),
 		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
-		url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
-		// url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
+		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
+		url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
 		// url:ko.observable(""),
 		nameid:ko.observable(""),
 		calltype:ko.observable("GET"),
@@ -716,6 +716,9 @@ iframe{
 		var data = Enumerable.From(dataSource).Where(function(x){return x.nameid == nameid}).FirstOrDefault()
 		Config.isFormActive(true);
 		Config.url(data.url);
+		if(data.calltype=="POST"){
+			Config.parameter(JSON.stringify(data.grabconf.data));
+		}
 		Config.isURLSet(true);
 		Config.nameid(data.nameid);
 		Config.calltype(data.calltype);
