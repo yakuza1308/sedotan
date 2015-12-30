@@ -721,7 +721,7 @@ iframe{
 		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
 		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
 		data.logconf.logpath("data/logs/"+filename+"/");
-		data.logconf.filename("LOG-GRAB"+filename);
+		data.logconf.filename("LOG-"+filename+"-%s");
 		var url = "{{BaseUrl}}configuration/save";
 		var parm = {
 			Data:ko.mapping.toJSON(data),
