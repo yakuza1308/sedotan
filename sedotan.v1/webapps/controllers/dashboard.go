@@ -5,9 +5,7 @@ import (
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/json"
 	"github.com/eaciit/knot/knot.v1"
-	// sdt "github.com/eaciit/sedotan/sedotan.v1"
 	"github.com/eaciit/sedotan/sedotan.v1/webapps/modules"
-	// "github.com/eaciit/toolkit"
 	"strings"
 )
 
