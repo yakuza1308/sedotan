@@ -63,7 +63,7 @@ func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
 		fmt.Println("Found : ", e)
 	}
 
-	filename = wd + "data\\configuration.json"
+	filename = wd + "data\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
@@ -93,7 +93,7 @@ func (a *ConfigurationController) Delete(k *knot.WebContext) interface{} {
 	e := k.GetPayload(&d)
 	k.Config.OutputType = knot.OutputJson
 
-	filename = wd + "data\\configuration.json"
+	filename = wd + "data\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
@@ -153,7 +153,7 @@ func (a *ConfigurationController) TestingDBOX(k *knot.WebContext) interface{} {
 func (a *ConfigurationController) GetData(k *knot.WebContext) interface{} {
 	k.Config.OutputType = knot.OutputJson
 
-	filename := wd + "data\\configuration.json"
+	filename := wd + "data\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
@@ -174,12 +174,17 @@ func (a *ConfigurationController) GetData(k *knot.WebContext) interface{} {
 func (a *ConfigurationController) GetURL(k *knot.WebContext) interface{} {
 
 	d := struct {
-		URL    string
-		Method string
+		URL       string
+		Method    string
+		Parameter interface{}
 	}{}
 	e := k.GetPayload(&d)
 	k.Config.OutputType = knot.OutputJson
-	r, e := tk.HttpCall(d.URL, d.Method, nil, nil)
+	data := []byte{}
+	if tk.IsValid(d.Parameter) {
+		return tk.Jsonify(d.Parameter)
+	}
+	r, e := tk.HttpCall(d.URL, d.Method, data, nil)
 	if e != nil {
 		return e.Error()
 	} else {

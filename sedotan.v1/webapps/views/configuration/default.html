@@ -1,6 +1,7 @@
 <style>
 #sourceCodeWrapper{
-	overflow-x:scrollable;
+	overflow:scroll;
+	height: 350px;
 }
 #sourceCodeWrapper > div:hover{
 	background: #FFF7EA;
@@ -73,14 +74,19 @@ iframe{
 		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
 		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
-		url:ko.observable(""),
+		url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
+		// url:ko.observable(""),
 		nameid:ko.observable(""),
 		calltype:ko.observable("GET"),
+		parameter:ko.observable(""),
+		grabconf:{
+			data:ko.observable("")
+		},
 		sourcetype:ko.observable("SourceType_Http"),
 		intervaltype:ko.observable("seconds"),
 		grabinterval:ko.observable(0),
 		timeoutinterval:ko.observable(0),
-		datasetting:ko.observableArray([]),
+		datasettings:ko.observableArray([]),
 		logconf:{
 			logpath:ko.observable(""),
 			filename: ko.observable(""),
@@ -91,7 +97,7 @@ iframe{
 		calltypeList:ko.observableArray(["GET","POST"]),
 		intervalList:ko.observableArray(["seconds","minutes","hours"]),
 		sourcetypeList:ko.observableArray(["SourceType_Http"]),
-		desttypeList:ko.observableArray(["csv","mongodb"]),
+		desttypeList:ko.observableArray(["csv","mongo"]),
 		useheaderList:ko.observableArray([true,false]),
 		// Process
 		ProcessNumber:ko.observable(1),
@@ -121,19 +127,28 @@ iframe{
 		<div class="col-md-7">
 			<div class="input-group">
 			  <span class="input-group-addon">Input URL</span>
-			  <input type="text" class="form-control" data-bind="value:url">
+			  <input type="text" class="form-control" data-bind="value:url" id="inputURL">
 			</div>
 		</div>
 		<div class="col-md-2">
 			<div class="input-group">
 			  <span class="input-group-addon">Call Type</span>
-			  <input type="text" class="form-control" data-bind="kendoDropDownList:{value:calltype,data:calltypeList}" />
+			  <input type="text" class="form-control" data-bind="kendoDropDownList:{value:calltype,data:calltypeList}" id="inputCallType" />
 			</div>
 		</div>
 		<div class="col-md-3">
-			<button class="btn btn-info" data-bind="click:GetURL">Get URL</button>
-			<button class="btn btn-danger" data-bind="click:Reset">Reset</button>
+			<button class="btn btn-info" data-bind="click:GetURL,visible:!isEdit()">Get URL</button>
+			<button class="btn btn-danger" data-bind="click:Reset,visible:!isEdit()">Reset</button>
 			<button class="btn btn-primary" onclick="Config.isFormActive(false)">Cancel</button>
+		</div>
+	</div>
+	<br data-bind="visible:isFormActive()"/>
+	<div class="row" data-bind="visible:isFormActive()">
+		<div class="col-md-12" data-bind="visible:calltype()=='POST'">
+			<div class="input-group">
+			  <span class="input-group-addon">Parameter</span>
+			  <input type="text" class="form-control" data-bind="value:parameter" id="inputURL">
+			</div>
 		</div>
 	</div>
 	<br/>
@@ -153,6 +168,9 @@ iframe{
 					<button class="btn btn-xs btn-success" data-bind="click:CompleteSelection"><span class="fa fa-check-circle"></span> Done</button>&nbsp;
 					<button class="btn btn-xs btn-warning" data-bind="click:CancelSelection"><span class="fa fa-mail-reply-all"></span> Cancel</button>
 				</div>
+				<div class="col-md-12">&nbsp;</div>
+				<div class="col-md-12">Selected Item :</div>
+				<div class="col-md-12" data-bind="text:selectedItem"></div>
 				<div class="col-md-12">&nbsp;</div>
 				<div class="col-md-12">
 					<div id="sourceCodeWrapper">
@@ -211,18 +229,23 @@ iframe{
 				<div class="row">
 					<div class="col-md-12">
 						<table width="100%" class="table">
-							<tr>
-								<th width="20%">Name</th>
-								<th>Row Selector</th>
-								<th>&nbsp;</th>
-							</tr>
-							<tbody data-bind="foreach:datasetting">
+							<thead>
+								<tr>
+									<th width="20%">Name</th>
+									<th>Row Selector</th>
+									<th width="75px;">&nbsp;</th>
+								</tr>
+							</thead>
+							<tbody data-bind="foreach:datasettings">
 								<tr>
 									<td data-bind="text:name()==''?'-':name"></td>
 									<td data-bind="text:rowselector()==''?'-':rowselector"></td>
 									<td>
 										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.ActiveData('+$index()+')'}">
 											<span class="fa fa-edit"></span>
+										</button>
+										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.RemoveRowData('+$index()+')'}">
+											<span class="fa fa-trash"></span>
 										</button>
 									</td>
 								</tr>
@@ -231,7 +254,7 @@ iframe{
 					</div>
 				</div>
 
-				<div class="row" data-bind="foreach:datasetting">
+				<div class="row" data-bind="foreach:datasettings">
 					<div class="col-md-12 data-setting" data-bind="visible:$index()==$parent.ActiveData()">
 						<div class="row">
 							<label class="col-md-5">
@@ -243,13 +266,17 @@ iframe{
 						</div>
 						<div class="row">
 							<label class="col-md-5">
-								Row Selector&nbsp;
-								<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
-									<span class="fa fa-search"></span>
-								</button>
+								Row Selector
 							</label>
 							<div class="col-md-7">
-								<input type="text" data-bind="value:rowselector" class="form-control"/>
+								<div class="input-group">
+									<input type="text" data-bind="value:rowselector" class="form-control"/>
+									<span class="input-group-btn">
+										<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
+											<span class="fa fa-search"></span>
+										</button>
+									</span>
+								</div>
 							</div>
 						</div>
 						<div class="row">
@@ -342,7 +369,7 @@ iframe{
 			</div>
 
 			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==3">
-				<div class="row" data-bind="foreach:datasetting">
+				<div class="row" data-bind="foreach:datasettings">
 					<div class="col-md-12 data-setting data-preview">
 						<div class="row">
 							<label class="col-md-5">Name</label>
@@ -431,6 +458,10 @@ iframe{
 	</div>
 </div>
 <script type="text/javascript">
+	Config.RemoveRowData = function(index){
+		var d = Config.datasettings()[index];
+		Config.datasettings.remove(d);
+	}
 	Config.GetColumnSettings = function(index){
 		Config.isSelecting(true);
 		Config.selectingWhat("columnsettings"+index);
@@ -447,10 +478,10 @@ iframe{
 		var selectingIndex = 0;
 		if(selectingWhat.indexOf("rowselector") == 0){
 			selectingIndex = parseInt(selectingWhat.substr(11));
-			Config.datasetting()[selectingIndex].rowselector(selectedItem)
+			Config.datasettings()[selectingIndex].rowselector(selectedItem)
 		}else{
 			selectingIndex = parseInt(selectingWhat.substr(14));
-			Config.datasetting()[Config.ActiveData()].columnsettings()[0].selector(selectedItem);
+			Config.datasettings()[Config.ActiveData()].columnsettings()[0].selector(selectedItem);
 		}
 		Config.isSelecting(false);
 		Config.selectingWhat("");
@@ -460,15 +491,18 @@ iframe{
 		Config.selectingWhat("");	
 	}
 	Config.AddNew = function(){
+		$("#inputURL").attr("readonly",false);
+		$("#inputCallType").data("kendoDropDownList").readonly(false);
 		Config.isFormActive(true);
 		Config.isEdit(false);
 	}
 	Config.AddData = function(){
-		Config.datasetting.push(new BaseData());
-		Config.ActiveData(Config.ActiveData()+1);
+		Config.datasettings.push(new BaseData());
+		Config.ActiveData(Config.datasettings().length-1);
+		Config.AddColumn(Config.datasettings().length-1);
 	}
 	Config.AddColumn = function(index){
-		Config.datasetting()[index].columnsettings.push(new ColumnBase());
+		Config.datasettings()[index].columnsettings.push(new ColumnBase());
 	}
 
 	Config.Reset = function(){
@@ -480,15 +514,31 @@ iframe{
 	}
 	Config.GetURL = function(){
 		Config.isURLSet(true);
-		window.open(Config.url(),"URLPreview");
-		Config.datasetting.push(new BaseData());
-
+		// window.open(Config.url(),"URLPreview");
+		Config.datasettings([]);
+		Config.datasettings.push(new BaseData());
+		Config.AddColumn(0);
 		var url = "{{BaseUrl}}configuration/geturl";
 		var parm = {
 			URL:Config.url(),
-			Method:Config.calltype()
+			Method:Config.calltype(),
+			Parameter:Config.calltype()=="GET"?null:JSON.parse(Config.parameter())
 		};
 		ajaxPost(url,parm,function(res){
+			var BaseUrl = Config.url().substr(0,Config.url().substr(Config.url().indexOf("www")).indexOf("/")+Config.url().indexOf("www")+1);
+
+			// var findcss = new RegExp("href=\"/", 'g');
+			// var findjs = new RegExp("src=\"/", 'g');
+			// res = res.replace(findcss,"href=\""+BaseUrl);
+			// res = res.replace(findjs,"src=\""+BaseUrl);
+			var find = new RegExp("=\"/", 'g');
+			res = res.replace(find,"=\""+BaseUrl);
+			
+
+			var doc = document.getElementById('URLPreview').contentWindow.document;
+			doc.open();
+			doc.write(res);
+			doc.close();
 			var startofbody = res.indexOf("<body");
 			var endofbody = res.indexOf("</body");
 			var body = res.substr(startofbody,endofbody-startofbody);
@@ -496,9 +546,10 @@ iframe{
 			body = body.substr(startofbody+1);
 			// console.log()
 			URLSource = $.parseHTML(body)
+			$("#sourceCodeWrapper").html("");
 			$(URLSource).each(function(i,e){
 			 if($(this).html()!==undefined){
-			 	Config.GetElement($(this),0,i,"body");
+			 	linenumber = Config.GetElement($(this),0,0,0,"body");
 			 }
 			})
 			// $("#sourceCodeWrapper").text(body);
@@ -509,7 +560,8 @@ iframe{
 	        alert(err.responseText)
 	    });
 	}
-	Config.GetElement = function(obj,parent,index,selector){
+	Config.GetElement = function(obj,parent,linenumber,index,selector){
+		linenumber +=1;
 		var classes = obj.attr("class");
 		var id = obj.attr("id");
 		if( id !== undefined && id !== "" ){
@@ -522,26 +574,64 @@ iframe{
 		}else{
 			classes = "";
 		}
+		var nodeName = obj.get()[0].nodeName.toLowerCase();
 		if(id!==""){
-			selector+=">"+obj.get()[0].nodeName.toLowerCase()+"#"+obj.attr("id").split(" ")[0];
+			selector+=">"+nodeName+"#"+obj.attr("id").split(" ")[0]+":eq("+index+")";
 		}else if(classes!==""){
-			selector+=">"+obj.get()[0].nodeName.toLowerCase()+"."+obj.attr("class").split(" ")[0];
+			selector+=">"+nodeName+"."+obj.attr("class").split(" ")[0]+":eq("+index+")";
+		}else{
+			selector+=">"+nodeName+":eq("+index+")";
 		}
 		
-		var str = "<"+obj.get()[0].nodeName.toLowerCase()+" "+id+" "+classes+">..";
+		var str = "<"+nodeName+" "+id+" "+classes+">..";
 		var style = "style='padding-left:"+parseFloat(parent)*10+"px'";
-		$("#sourceCodeWrapper").append("<div id='scw"+parent+index+"' "+style+" class='selector'></div>");
-		$("#scw"+parent+index).text(str);
-		$("#scw"+parent+index).attr("onclick","Config.GetCurrentSelector('"+"scw"+parent+index+"','"+selector+"')");
+		$("#sourceCodeWrapper").append("<div id='scw"+linenumber+"' "+style+" class='selector'></div>");
+		$("#scw"+linenumber).text(str);
+		$("#scw"+linenumber).attr("onclick","Config.GetCurrentSelector('"+"scw"+linenumber+"','"+selector+"')");
+		var idx = 0;
+		var prevNode = "";
 		obj.children().each(function(i,e){
-			Config.GetElement($(this),parent+1,i,selector);
+			var node = $(this).get()[0].nodeName.toLowerCase();
+			if (prevNode == node){
+				idx=0;
+			}
+			if($(this).html()!==undefined && node!== "link" && node !=="script"){
+				linenumber = Config.GetElement($(this),parseFloat(parent+1),linenumber,idx,selector);
+				idx++;
+			}
+			prevNode = node;
 		})
+		return linenumber;
 	}
 
 	Config.GetCurrentSelector = function(id,selector){
 		$("*.selector").attr("class","selector");
 		$("#"+id).attr("class","selector active");
+		var existingStyle = $(Config.selectedItem(), $("#URLPreview").contents()).attr("style");
+		
+		if(existingStyle!==undefined){
+			existingStyle = existingStyle.replace(";border:5px solid #FF9900","");
+			existingStyle = existingStyle.replace("border:5px solid #FF9900","");
+			$(Config.selectedItem(), $("#URLPreview").contents()).attr("style",existingStyle);
+		}
+		
+		console.log(selector);
+		$("body", $("#URLPreview").contents()).scrollTop($(selector, $("#URLPreview").contents()).offset().top)
+		
 		Config.selectedItem(selector);
+		existingStyle = "";
+		existingStyle = $(selector, $("#URLPreview").contents()).attr("style");
+		if(existingStyle!==undefined){
+			if(existingStyle[existingStyle.length-1]==";"){
+				existingStyle += existingStyle+"border:5px solid #FF9900"	
+			}else{
+				existingStyle += existingStyle+";border:5px solid #FF9900"
+			}
+			
+		}else{
+			existingStyle = "border:5px solid #FF9900"
+		}
+		$(selector, $("#URLPreview").contents()).attr("style",existingStyle);
 	}
 
 	Config.Save = function(){
@@ -566,15 +656,22 @@ iframe{
 		delete data["selectingWhat"]
 		delete data["selectedItem"]
 		
+		if(data.calltype()=="GET"){
+			delete data["parameter"]
+			delete data["grabconf"]
+		}else{
+			data.grabconf.data = JSON.parse(data.parameter());
+			delete data["parameter"]
+		}
 		
-		for(var i in data.datasetting()){
-			switch(data.datasetting()[i].desttype()){
+		for(var i in data.datasettings()){
+			switch(data.datasettings()[i].desttype()){
 				case "csv":
-					delete data.datasetting()[i].connectioninfo["database"]
-					delete data.datasetting()[i].connectioninfo["collection"]
+					delete data.datasettings()[i].connectioninfo["database"]
+					delete data.datasettings()[i].connectioninfo["collection"]
 					break;
 				case "mongodb":
-					delete data.datasetting()[i].connectioninfo["settings"]
+					delete data.datasettings()[i].connectioninfo["settings"]
 					break;
 				default:
 					break;
@@ -612,11 +709,16 @@ iframe{
 	    });
 	}
 	Config.Edit = function(nameid){
+		$("#inputURL").attr("readonly",true);
+		$("#inputCallType").data("kendoDropDownList").readonly(true);
 		Config.isEdit(true);
 		var dataSource = Config.Data();
 		var data = Enumerable.From(dataSource).Where(function(x){return x.nameid == nameid}).FirstOrDefault()
 		Config.isFormActive(true);
 		Config.url(data.url);
+		if(data.calltype=="POST"){
+			Config.parameter(JSON.stringify(data.grabconf.data));
+		}
 		Config.isURLSet(true);
 		Config.nameid(data.nameid);
 		Config.calltype(data.calltype);
@@ -624,29 +726,29 @@ iframe{
 		Config.intervaltype(data.intervaltype);
 		Config.grabinterval(data.grabinterval);
 		Config.timeoutinterval(data.timeoutinterval);
-		var datasetting = data.datasetting;
-		for(var i in datasetting){
-			Config.datasetting.push(new BaseData());
-			Config.datasetting()[i].name(datasetting[i].name);
-			Config.datasetting()[i].desttype(datasetting[i].desttype);
-			Config.datasetting()[i].rowselector(datasetting[i].rowselector);
-			Config.datasetting()[i].connectioninfo.host(datasetting[i].connectioninfo.host);
-			switch(datasetting[i].desttype){
+		var datasettings = data.datasettings;
+		for(var i in datasettings){
+			Config.datasettings.push(new BaseData());
+			Config.datasettings()[i].name(datasettings[i].name);
+			Config.datasettings()[i].desttype(datasettings[i].desttype);
+			Config.datasettings()[i].rowselector(datasettings[i].rowselector);
+			Config.datasettings()[i].connectioninfo.host(datasettings[i].connectioninfo.host);
+			switch(datasettings[i].desttype){
 				case "csv":
-					Config.datasetting()[i].connectioninfo.settings.useheader(datasetting[i].connectioninfo.settings.useheader);
-					Config.datasetting()[i].connectioninfo.settings.delimiter(datasetting[i].connectioninfo.settings.delimiter);
+					Config.datasettings()[i].connectioninfo.settings.useheader(datasettings[i].connectioninfo.settings.useheader);
+					Config.datasettings()[i].connectioninfo.settings.delimiter(datasettings[i].connectioninfo.settings.delimiter);
 				break;
 				case "mongodb":
-					Config.datasetting()[i].connectioninfo.collection(datasetting[i].connectioninfo.collection);
-					Config.datasetting()[i].connectioninfo.database(datasetting[i].connectioninfo.database);
+					Config.datasettings()[i].connectioninfo.collection(datasettings[i].connectioninfo.collection);
+					Config.datasettings()[i].connectioninfo.database(datasettings[i].connectioninfo.database);
 				break;
 				default:break;
 			}
-			var columnsettings = datasetting[i].columnsettings;
+			var columnsettings = datasettings[i].columnsettings;
 			for(var c in columnsettings){
-				Config.datasetting()[i].columnsettings.push(new ColumnBase())
-				Config.datasetting()[i].columnsettings()[c].alias(columnsettings[c].alias);
-				Config.datasetting()[i].columnsettings()[c].selector(columnsettings[c].selector);
+				Config.datasettings()[i].columnsettings.push(new ColumnBase())
+				Config.datasettings()[i].columnsettings()[c].alias(columnsettings[c].alias);
+				Config.datasettings()[i].columnsettings()[c].selector(columnsettings[c].selector);
 			}
 
 		}
@@ -688,7 +790,7 @@ iframe{
 			  { field: "intervaltype", title: "Interval Type",width:120},
 			  { field: "grabinterval", title: "Grab Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
 			  { field: "timeoutinterval", title: "Timeout Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
-			  { field: "datasetting", title: "Data Setting",template:"#:datasetting.length# Data"},
+			  { field: "datasettings", title: "Data Setting",template:"#:datasettings.length# Data"},
 			  { field: "nameid", title: "&nbsp;",filterable:false,sortable:false,width:100,attributes:{ class:"align-center" },
 			  	template:"<button class='btn btn-default' onclick='Config.Edit(\"#:nameid#\")'><span class='fa fa-edit' ></span></button>"+
 			  	"&nbsp;"+
