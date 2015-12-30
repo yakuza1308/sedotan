@@ -5,9 +5,7 @@ import (
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/json"
 	"github.com/eaciit/knot/knot.v1"
-	// sdt "github.com/eaciit/sedotan/sedotan.v1"
 	"github.com/eaciit/sedotan/sedotan.v1/webapps/modules"
-	// "github.com/eaciit/toolkit"
 	"strings"
 )
 
@@ -90,12 +88,9 @@ func (a *DashboardController) Stopservice(k *knot.WebContext) interface{} {
 	}
 
 	ds, _ := Getquery(t.NameId)
-	name, isRun := modules.StopProcess(ds)
-	var grabName = map[string]interface{}{}
-	grabName["name"] = name
-	grabName["stat"] = isRun
+	_, isRun := modules.StopProcess(ds)
 
-	return grabName
+	return isRun
 }
 
 func (a *DashboardController) Stat(k *knot.WebContext) interface{} {
