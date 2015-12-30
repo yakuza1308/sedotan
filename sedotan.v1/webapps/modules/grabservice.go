@@ -266,8 +266,10 @@ func ReadLog(logConf interface{}, isRun bool, name string) interface{} {
 	var grabsStatus = map[string]interface{}{}
 	var grabStat bool
 
-	dateNow := time.Now()
-	logFile := fmt.Sprintf("%s\\%s%s!(EXTRA string=%s)", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string), "%", dateNow.Format(logConf.(map[string]interface{})["filepattern"].(string)))
+	// dateNow := time.Now()
+	// logFile := fmt.Sprintf("%s\\%s%s!(EXTRA string=%s)", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string), "%", dateNow.Format(logConf.(map[string]interface{})["filepattern"].(string)))
+	logFile := fmt.Sprintf("%s\\%s", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string))
+
 	openLogFile, e := os.Open(logFile)
 	if e != nil {
 		grabsStatus["error"] = e.Error()
