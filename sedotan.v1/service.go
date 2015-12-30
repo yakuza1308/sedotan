@@ -138,6 +138,7 @@ func (g *GrabService) StartService() error {
 		g.Log.AddLog(fmt.Sprintf("[%s] Running Service", g.Name), "INFO")
 		g.execService()
 	} else {
+		g.Log.AddLog(fmt.Sprintf("[%s] Running Service, Found : %s", g.Name, e), "ERROR")
 		return e
 	}
 
@@ -149,6 +150,7 @@ func (g *GrabService) StopService() error {
 		g.ServiceRunningStat = false
 		g.Log.AddLog(fmt.Sprintf("[%s] Stop Service", g.Name), "INFO")
 	} else {
+		g.Log.AddLog(fmt.Sprintf("[%s] Stop Service, Found : Service Not Running", g.Name), "ERROR")
 		return errors.New("Service Not Running")
 	}
 
