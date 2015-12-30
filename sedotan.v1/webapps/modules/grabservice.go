@@ -102,7 +102,8 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 
 	tempDataSetting := sdt.DataSetting{}
 	tempDestInfo := sdt.DestInfo{}
-	// orCondition := []interface{}{}
+	orCondition := []interface{}{}
+	var condition string
 
 	for _, dataSet := range data["datasettings"].([]interface{}) {
 		dataToMap, _ := toolkit.ToM(dataSet)
@@ -115,19 +116,20 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		}
 
 		if data["calltype"].(string) == "POST" {
-			orCondition := []interface{}{}
+			// orCondition := []interface{}{}
 			if hasRowdeletecond := dataToMap.Has("rowdeletecond"); hasRowdeletecond {
 				for key, rowDeleteMap := range dataToMap["rowdeletecond"].(map[string]interface{}) {
 					if key == "$or" || key == "$and" {
 						for _, subDataRowDelete := range rowDeleteMap.([]interface{}) {
 							for subIndex, getValueRowDelete := range subDataRowDelete.(map[string]interface{}) {
-								tempDataSetting.Column(0, &sdt.GrabColumn{Alias: subIndex, Selector: getValueRowDelete.(string)})
+								orCondition = append(orCondition, map[string]interface{}{subIndex: getValueRowDelete})
 							}
 						}
-						tempDataSetting.RowDeleteCond = toolkit.M{}.Set(key, orCondition)
+						condition = key
 					}
 				}
 			}
+			tempDataSetting.RowDeleteCond = toolkit.M{}.Set(condition, orCondition)
 		}
 
 		xGrabService.ServGrabber.DataSettings[dataToMap["name"].(string)] = &tempDataSetting //DATA01 use name in datasettings
@@ -153,7 +155,6 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 			pwd = connToMap["username"].(string)
 		}
 		ci := dbox.ConnectionInfo{}
-		fmt.Println(connToMap["host"].(string))
 		ci.Host = connToMap["host"].(string) //"E:\\data\\vale\\Data_GrabIronTest.csv"
 		ci.Database = db
 		ci.UserName = usr
@@ -163,7 +164,7 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 			ci.Settings = nil
 		} else {
 			settingToMap, _ := toolkit.ToM(connToMap["settings"])
-			ci.Settings = toolkit.M{}.Set("useheader", settingToMap["useheader"].(bool)).Set("delimiter", settingToMap["delimiter"].(string))
+			ci.Settings = toolkit.M{}.Set("useheader", settingToMap["useheader"].(bool)).Set("delimiter", settingToMap["delimiter"])
 		}
 
 		if hasCollection := connToMap.Has("collection"); !hasCollection {
@@ -265,8 +266,10 @@ func ReadLog(logConf interface{}, isRun bool, name string) interface{} {
 	var grabsStatus = map[string]interface{}{}
 	var grabStat bool
 
-	dateNow := time.Now()
-	logFile := fmt.Sprintf("%s\\%s%s!(EXTRA string=%s)", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string), "%", dateNow.Format(logConf.(map[string]interface{})["filepattern"].(string)))
+	// dateNow := time.Now()
+	// logFile := fmt.Sprintf("%s\\%s%s!(EXTRA string=%s)", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string), "%", dateNow.Format(logConf.(map[string]interface{})["filepattern"].(string)))
+	logFile := fmt.Sprintf("%s\\%s", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string))
+
 	openLogFile, e := os.Open(logFile)
 	if e != nil {
 		grabsStatus["error"] = e.Error()
@@ -298,7 +301,7 @@ func ReadLog(logConf interface{}, isRun bool, name string) interface{} {
 		grabsStatus["note"] = strings.Join(splits[4:], " ")
 		grabsStatus["dateNow"] = splits[1]
 		grabsStatus["timeNow"] = splits[2]
-		grabsStatus["status"] = grabStat
+		grabsStatus["grabStat"] = grabStat
 	}
 	grabsStatus["name"] = name
 	grabsStatus["isRun"] = isRun
