@@ -31,9 +31,12 @@ type GrabService struct {
 	ServGrabber *Grabber
 
 	LastGrabExe  time.Time
+	NextGrabExe  time.Time
 	LastGrabStat bool
 
 	ServiceRunningStat bool
+
+	ErrorNotes string
 }
 
 type DestInfo struct {
@@ -62,12 +65,16 @@ func (g *GrabService) execService() {
 				<-time.After(g.TimeOutInterval)
 			}
 
+			g.ErrorNotes = ""
 			g.LastGrabExe = time.Now()
+			g.NextGrabExe = time.Now().Add(g.GrabInterval)
 			g.LastGrabStat = true
 			g.Log.AddLog(fmt.Sprintf("[%s] Grab Started %s", g.Name, g.Url), "INFO")
 
 			if e := g.ServGrabber.Grab(nil); e != nil {
-				g.Log.AddLog(fmt.Sprintf("[%s] Grab Failed %s, repeat after %s :%s", g.Name, g.Url, g.TimeOutIntervalInfo, e), "ERROR")
+				g.ErrorNotes = fmt.Sprintf("[%s] Grab Failed %s, repeat after %s :%s", g.Name, g.Url, g.TimeOutIntervalInfo, e)
+				g.Log.AddLog(g.ErrorNotes, "ERROR")
+				g.NextGrabExe = time.Now().Add(g.TimeOutInterval)
 				g.LastGrabStat = false
 				continue
 			} else {
@@ -81,13 +88,15 @@ func (g *GrabService) execService() {
 					docs := []toolkit.M{}
 					e := g.ServGrabber.ResultFromHtml(key, &docs)
 					if e != nil {
-						g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Result Failed : ", g.Name, key, e), "ERROR")
+						g.ErrorNotes = fmt.Sprintf("[%s-%s] Fetch Result Failed : ", g.Name, key, e)
+						g.Log.AddLog(g.ErrorNotes, "ERROR")
 						continue
 					}
 
 					e = g.DestDbox[key].IConnection.Connect()
 					if e != nil {
-						g.Log.AddLog(fmt.Sprintf("[%s-%s] Connect to destination failed [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e), "ERROR")
+						g.ErrorNotes = fmt.Sprintf("[%s-%s] Connect to destination failed [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e)
+						g.Log.AddLog(g.ErrorNotes, "ERROR")
 						continue
 					}
 
@@ -97,27 +106,30 @@ func (g *GrabService) execService() {
 					} else {
 						q = g.DestDbox[key].IConnection.NewQuery().SetConfig("multiexec", true).From(g.DestDbox[key].Collection).Save()
 					}
-
-					for x, doc := range docs {
+					xN := 0
+					for _, doc := range docs {
 						for key, val := range doc {
 							doc[key] = strings.TrimSpace(fmt.Sprintf("%s", val))
 						}
 
 						if g.DestDbox[key].Desttype == "mongo" {
-							doc["_id"] = x
+							doc["_id"] = toolkit.GenerateRandomString("1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz", 32)
 						}
 
 						e = q.Exec(toolkit.M{
 							"data": doc,
 						})
+
 						if e != nil {
-							g.Log.AddLog(fmt.Sprintf("[%s-%s] Unable to insert [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e), "ERROR")
+							g.ErrorNotes = fmt.Sprintf("[%s-%s] Unable to insert [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e)
+							g.Log.AddLog(g.ErrorNotes, "ERROR")
 						}
+						xN++
 					}
 					q.Close()
 					g.DestDbox[key].IConnection.Close()
 
-					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished", g.Name, key), "INFO")
+					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished, %d record fetch", g.Name, key, xN), "INFO")
 				}
 			}
 		}
@@ -125,7 +137,7 @@ func (g *GrabService) execService() {
 }
 
 func (g *GrabService) StartService() error {
-
+	g.ErrorNotes = ""
 	if g.ServiceRunningStat == true {
 		return errors.New("Service Already Running")
 	}
@@ -138,7 +150,8 @@ func (g *GrabService) StartService() error {
 		g.Log.AddLog(fmt.Sprintf("[%s] Running Service", g.Name), "INFO")
 		g.execService()
 	} else {
-		g.Log.AddLog(fmt.Sprintf("[%s] Running Service, Found : %s", g.Name, e), "ERROR")
+		g.ErrorNotes = fmt.Sprintf("[%s] Running Service, Found : %s", g.Name, e)
+		g.Log.AddLog(g.ErrorNotes, "ERROR")
 		return e
 	}
 
