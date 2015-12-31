@@ -5,9 +5,7 @@ import (
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/json"
 	"github.com/eaciit/knot/knot.v1"
-	// sdt "github.com/eaciit/sedotan/sedotan.v1"
 	"github.com/eaciit/sedotan/sedotan.v1/webapps/modules"
-	// "github.com/eaciit/toolkit"
 	"strings"
 )
 
@@ -54,7 +52,7 @@ func (a *DashboardController) Griddashboard(k *knot.WebContext) interface{} {
 		return e
 	}
 	defer c.Close()
-	csr, e := c.NewQuery().Select("nameid", "url", "grabinterval").Cursor(nil)
+	csr, e := c.NewQuery().Select("nameid", "url", "grabinterval", "intervaltype").Cursor(nil)
 	defer csr.Close()
 	ds, e := csr.Fetch(nil, 0, false)
 
@@ -107,7 +105,8 @@ func (a *DashboardController) Stat(k *knot.WebContext) interface{} {
 	}
 
 	ds, _ := Getquery(t.NameId)
-	grabStatus := modules.CheckStat(ds)
+	gs := modules.NewGrabService()
+	grabStatus := gs.CheckStat(ds)
 
 	return grabStatus
 }
