@@ -1,198 +1,189 @@
 [
   {
-    "nameid": "goldshfecom",
-    "url": "http://www.shfe.com.cn/en/products/Gold/",
     "calltype": "GET",
-    "intervaltype": "seconds",
-    "grabinterval": 20,
-    "timeoutinterval": 5,
-    "sourcetype": "SourceType_Http",
-    "logconf": 
+    "datasettings": [
       {
-        "logpath": "E:\\data\\vale\\log",
-        "filename": "LOG-GRABSHFE",
-        "filepattern": "20060102"
-      },
-    "datasettings": 
-      [
-        {
-          "name": "GoldTab01",
-          "rowselector": "#tab_conbox li:nth-child(1) .sjtable .listshuju tbody tr",
-          "columnsettings": 
-            [
-              {
-                "index": 0,
-                "alias": "Code",
-                "selector": "td:nth-child(1)"
-              },
-              {
-                "index": 0,
-                "alias": "ListingDate",
-                "selector": "td:nth-child(2)"
-              },
-              {
-                "index": 0,
-                "alias": "ExpirationDate",
-                "selector": "td:nth-child(3)"
-              }
-            ],
-          "desttype": "mongo",
-          "connectioninfo": 
-            {
-              "host": "localhost:27017",
-              "database": "valegrab",
-              "collection": "shfegold"
-            }
+        "columnsettings": [
+          {
+            "alias": "Code",
+            "index": 0,
+            "selector": "td:nth-child(1)"
+          },
+          {
+            "alias": "ListingDate",
+            "index": 0,
+            "selector": "td:nth-child(2)"
+          },
+          {
+            "alias": "ExpirationDate",
+            "index": 0,
+            "selector": "td:nth-child(3)"
+          }
+        ],
+        "connectioninfo": {
+          "collection": "shfegold",
+          "database": "valegrab",
+          "host": "localhost:27017"
         },
-        {
-          "name": "GoldTab02",
-          "rowselector": "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr",
-          "columnsettings": 
-            [
-              {
-                "index": 0,
-                "alias": "Code",
-                "selector": "td:nth-child(1)"
-              },
-              {
-                "index": 0,
-                "alias": "LongSpeculation",
-                "selector": "td:nth-child(2)"
-              },
-              {
-                "index": 0,
-                "alias": "ShortSpeculation",
-                "selector": "td:nth-child(3)"
-              }
-            ],
-          "desttype": "csv",
-          "connectioninfo": 
-            {
-              "host": "E:\\data\\vale\\Data_Grab.csv",
-              "settings":
-                {
-                  "useheader": true, 
-                  "delimiter": ","
-                }
-            }
-        }
-      ]
+        "desttype": "mongo",
+        "name": "GoldTab01",
+        "rowselector": "#tab_conbox li:nth-child(1) .sjtable .listshuju tbody tr"
+      },
+      {
+        "columnsettings": [
+          {
+            "alias": "Code",
+            "index": 0,
+            "selector": "td:nth-child(1)"
+          },
+          {
+            "alias": "LongSpeculation",
+            "index": 0,
+            "selector": "td:nth-child(2)"
+          },
+          {
+            "alias": "ShortSpeculation",
+            "index": 0,
+            "selector": "td:nth-child(3)"
+          }
+        ],
+        "connectioninfo": {
+          "host": "E:\\data\\vale\\Data_Grab.csv",
+          "settings": {
+            "delimiter": ",",
+            "useheader": true
+          }
+        },
+        "desttype": "csv",
+        "name": "GoldTab02",
+        "rowselector": "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr"
+      }
+    ],
+    "grabinterval": 20,
+    "intervaltype": "seconds",
+    "logconf": {
+      "filename": "LOG-GRABSHFE",
+      "filepattern": "20060102",
+      "logpath": "E:\\data\\vale\\log"
+    },
+    "nameid": "goldshfecom",
+    "sourcetype": "SourceType_Http",
+    "timeoutinterval": 5,
+    "url": "http://www.shfe.com.cn/en/products/Gold/"
   },
   {
-    "nameid": "irondcecomcn",
-    "url": "http://www.dce.com.cn/PublicWeb/MainServlet",
     "calltype": "POST",
-    "grabconf": 
+    "datasettings": [
       {
-        "data":
+        "columnsettings": [
           {
-            "Pu00231_Input.trade_date": 20151214,
-            "Pu00231_Input.variety": "i",
-            "Pu00231_Input.trade_type": 0,
-            "Submit": "Go",
-            "action": "Pu00231_result"
+            "alias": "Contract",
+            "index": 0,
+            "selector": "td:nth-child(1)"
+          },
+          {
+            "alias": "Open",
+            "index": 0,
+            "selector": "td:nth-child(2)"
+          },
+          {
+            "alias": "High",
+            "index": 0,
+            "selector": "td:nth-child(3)"
+          },
+          {
+            "alias": "Low",
+            "index": 0,
+            "selector": "td:nth-child(4)"
+          },
+          {
+            "alias": "Close",
+            "index": 0,
+            "selector": "td:nth-child(5)"
+          },
+          {
+            "alias": "Prev Settle",
+            "index": 0,
+            "selector": "td:nth-child(6)"
+          },
+          {
+            "alias": "Prev Settle",
+            "index": 0,
+            "selector": "td:nth-child(7)"
+          },
+          {
+            "alias": "Settle",
+            "index": 0,
+            "selector": "td:nth-child(8)"
+          },
+          {
+            "alias": "Chg",
+            "index": 0,
+            "selector": "td:nth-child(9)"
+          },
+          {
+            "alias": "Volume",
+            "index": 0,
+            "selector": "td:nth-child(10)"
+          },
+          {
+            "alias": "OI",
+            "index": 0,
+            "selector": "td:nth-child(11)"
+          },
+          {
+            "alias": "OI Chg",
+            "index": 0,
+            "selector": "td:nth-child(12)"
+          },
+          {
+            "alias": "Turnover",
+            "index": 0,
+            "selector": "td:nth-child(13)"
           }
-      },
-    "intervaltype": "seconds",
-    "grabinterval": 20,
-    "timeoutinterval": 5,
-    "sourcetype": "SourceType_Http",
-    "logconf": 
-      {
-        "logpath": "E:\\data\\vale\\log",
-        "filename": "LOG-GRABDCE",
-        "filepattern": "20060102"
-      },
-    "datasettings": 
-      [
-        {
-          "name": "GoldTab01",
-          "rowselector": "table .table tbody",
-          "columnsettings": 
-            [
-              {
-                "index": 0,
-                "alias": "Contract",
-                "selector": "td:nth-child(1)"
-              },
-              {
-                "index": 0,
-                "alias": "Open",
-                "selector": "td:nth-child(2)"
-              },
-              {
-                "index": 0,
-                "alias": "High",
-                "selector": "td:nth-child(3)"
-              },
-              {
-                "index": 0,
-                "alias": "Low",
-                "selector": "td:nth-child(4)"
-              },
-              {
-                "index": 0,
-                "alias": "Close",
-                "selector": "td:nth-child(5)"
-              },
-              {
-                "index": 0,
-                "alias": "Prev Settle",
-                "selector": "td:nth-child(6)"
-              },
-              {
-                "index": 0,
-                "alias": "Prev Settle",
-                "selector": "td:nth-child(7)"
-              },
-              {
-                "index": 0,
-                "alias": "Settle",
-                "selector": "td:nth-child(8)"
-              },
-              {
-                "index": 0,
-                "alias": "Chg",
-                "selector": "td:nth-child(9)"
-              },
-              {
-                "index": 0,
-                "alias": "Volume",
-                "selector": "td:nth-child(10)"
-              },
-              {
-                "index": 0,
-                "alias": "OI",
-                "selector": "td:nth-child(11)"
-              },
-              {
-                "index": 0,
-                "alias": "OI Chg",
-                "selector": "td:nth-child(12)"
-              },
-              {
-                "index": 0,
-                "alias": "Turnover",
-                "selector": "td:nth-child(13)"
-              }
-            ],
-          "rowdeletecond":
-            { 
-              "$or":
-                [
-                  {"Contract": "Contract"},
-                  {"Contract": "Iron Ore Subtotal"},
-                  {"Contract": "Total"}
-                ]
-            },
-          "desttype": "mongo",
-          "connectioninfo": 
+        ],
+        "connectioninfo": {
+          "collection": "irondcecom",
+          "database": "valegrab",
+          "host": "localhost:27017"
+        },
+        "desttype": "mongo",
+        "name": "GoldTab01",
+        "rowdeletecond": {
+          "$or": [
             {
-              "host": "localhost:27017",
-              "database": "valegrab",
-              "collection": "irondcecom"
+              "Contract": "Contract"
+            },
+            {
+              "Contract": "Iron Ore Subtotal"
+            },
+            {
+              "Contract": "Total"
             }
-        }
-      ]
+          ]
+        },
+        "rowselector": "table .table tbody"
+      }
+    ],
+    "grabconf": {
+      "data": {
+        "Pu00231_Input.trade_date": 2.0151214e+07,
+        "Pu00231_Input.trade_type": 0,
+        "Pu00231_Input.variety": "i",
+        "Submit": "Go",
+        "action": "Pu00231_result"
+      }
+    },
+    "grabinterval": 20,
+    "intervaltype": "seconds",
+    "logconf": {
+      "filename": "LOG-GRABDCE",
+      "filepattern": "20060102",
+      "logpath": "E:\\data\\vale\\log"
+    },
+    "nameid": "irondcecomcn",
+    "sourcetype": "SourceType_Http",
+    "timeoutinterval": 5,
+    "url": "http://www.dce.com.cn/PublicWeb/MainServlet"
   }
 ]

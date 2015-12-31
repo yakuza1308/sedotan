@@ -40,7 +40,8 @@
 
 	<script type="text/javascript">
 		var model = {
-			Processing : false
+			Processing : false,
+			PageId:ko.observable("")
 		};
 	</script>
 
@@ -100,7 +101,7 @@
 
 
         <script id="navbarTemplate" type="text/html">
-            	<li data-bind="if: Submenus().length==0">
+            	<li data-bind="if: Submenus().length==0,attr:{'class':Id()==model.PageId()?'active':''}">
                 	<a data-bind="text: Title, attr:{href:Url}"></a>
             	</li>
 
