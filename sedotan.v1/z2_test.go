@@ -74,8 +74,8 @@ func TestServiceGrabGet(t *testing.T) {
 
 	xGrabService.SourceType = SourceType_Http
 
-	xGrabService.GrabInterval = 5 * time.Minute
-	xGrabService.TimeOutInterval = 1 * time.Minute //time.Hour, time.Minute, time.Second
+	xGrabService.GrabInterval = 2 * time.Minute
+	xGrabService.TimeOutInterval = 5 * time.Second //time.Hour, time.Minute, time.Second
 
 	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, "seconds")
 
@@ -155,10 +155,22 @@ func TestServiceGrabGet(t *testing.T) {
 		t.Errorf("Error Found : ", e)
 	} else {
 
+		fmt.Printf("[SUM] start %s, grab %d times, data retreive %d rows, error %d times\n", xGrabService.StartDate, xGrabService.GrabCount, xGrabService.RowGrabbed, xGrabService.ErrorFound)
 		for i := 0; i < 100; i++ {
 			fmt.Printf(".")
 			time.Sleep(1000 * time.Millisecond)
 		}
+
+		fmt.Println()
+		fmt.Printf("[SUM] start %s, grab %d times, data retreive %d rows, error %d times\n", xGrabService.StartDate, xGrabService.GrabCount, xGrabService.RowGrabbed, xGrabService.ErrorFound)
+
+		for i := 0; i < 100; i++ {
+			fmt.Printf(".")
+			time.Sleep(1000 * time.Millisecond)
+		}
+
+		fmt.Println()
+		fmt.Printf("[SUM] start %s, grab %d times, data retreive %d rows, error %d times\n", xGrabService.StartDate, xGrabService.GrabCount, xGrabService.RowGrabbed, xGrabService.ErrorFound)
 
 		e = xGrabService.StopService()
 		if e != nil {
