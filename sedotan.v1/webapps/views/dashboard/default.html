@@ -1,38 +1,39 @@
 <h1>Dashboard</h1>
-
 <div id="grid"></div>
 <div id="details"></div>
-
 <style>
 .critical {
     background-color: #c9302c;
     font-weight: bold;
     color: #fff;
+    text-align: center;
 }
 
 .stop {
     background-color: #f0ad4e;
     font-weight: bold;
     color: #fff;
+    text-align: center;
 }
 
 .ok {
     background-color: #5cb85c;
     font-weight: bold;
     color: #fff;
+    text-align: center;
 }
 </style>
 <script id="command-template" type="text/x-kendo-template">
-    <a class="k-button k-grid-start btn btn-info" id='service-#:data.nameid#'>#= data.status == "STOP" ? "Start" : "Stop" #</a>
+    <a class="k-button k-grid-start btn btn-info" id='service-#:data.nameid#'>
+        #= data.status == "STOP" ? "Start" : "Stop" #
+    </a>
 </script>
-
 <script type="text/x-kendo-template" id="detail-template">
     <div id="details-container">
-        
     </div>
 </script>
-
 <script>
+
 var wnd, detailsTemplate;
 var localdata = {}
 $.ajax({
@@ -41,9 +42,9 @@ $.ajax({
     type: "POST",
     async: false,
     success: function(data) {
-        
+
         var datas = []
-        $.each(data, function(i,v){
+        $.each(data, function(i, v) {
             var dataPush = {}
             dataPush.nameid = v.nameid
             dataPush.grabinterval = v.grabinterval + " " + v.intervaltype
@@ -56,7 +57,7 @@ $.ajax({
             checkStat(v.nameid, v.grabinterval, 0, i)
             datas.push(dataPush)
         });
-        localdata = datas        
+        localdata = datas
     },
     error: function(e) {
         console.log(e)
@@ -81,8 +82,7 @@ var commonSettings = {
     columns: [{
         template: kendo.template($("#command-template").html()),
         width: 80
-    },
-    {
+    }, {
         field: "status",
         title: "STATUS",
         width: 60
@@ -113,14 +113,20 @@ var commonSettings = {
     }, {
         field: "note",
         title: "NOTE"
-    }, { command: { text: "Log", click: showDetails }, title: "", width: "80px" }
-    ]
+    }, {
+        command: {
+            text: "Log",
+            click: showDetails
+        },
+        title: "",
+        width: "80px"
+    }]
 }
 
-function getStatusClass(stat){
+function getStatusClass(stat) {
     if (stat == "RUN") {
         return "ok"
-    } else if (stat =="STOP") {
+    } else if (stat == "STOP") {
         return "stop"
     } else if (stat == "ERROR") {
         return "critical"
@@ -137,12 +143,12 @@ $("#grid").kendoGrid($.extend({
             }
             columnIndex++;
         }
-        
+
         var dataItems = e.sender.dataSource.view();
-        for (var j = 0; j < dataItems.length; j++) {            
+        for (var j = 0; j < dataItems.length; j++) {
             var stat = dataItems[j].get("status");
             var row = e.sender.tbody.find("[data-uid='" + dataItems[j].uid + "']");
-            var cell = row.children().eq(columnIndex);                
+            var cell = row.children().eq(columnIndex);
             cell.addClass(getStatusClass(stat));
         }
     }
@@ -193,29 +199,29 @@ $("#grid").on("click", ".k-grid-start", function(e) {
     var tr = $(e.target).closest("tr"); // get the current table row (tr)
     var data = grid.dataItem(tr);
     var selected = data.status;
-   
+
     if (selected == "STOP" || selected == undefined) {
         data.set("status", "RUN");
         curBtn.text('Stop');
         startService(data.nameid, data.uid)
-        
+
         // var currentRow = grid.table.find("tr[data-uid='" + data.uid + "']");
         // var startButton = $(currentRow).find(".k-grid-start");
         // startButton.removeClass("btn-success")
         // startButton.addClass("btn-danger");
-    }else{
+    } else {
         data.set("status", "STOP");
         curBtn.text('Start');
         stopService(data.nameid, data.uid)
-        // var currenRow = grid.table.find("tr[data-uid='" + data.uid + "']");
-        // var startButton = $(currenRow).find(".k-grid-start");
-        // startButton.removeClass("btn-danger")
-        // startButton.addClass("btn-success");
+            // var currenRow = grid.table.find("tr[data-uid='" + data.uid + "']");
+            // var startButton = $(currenRow).find(".k-grid-start");
+            // startButton.removeClass("btn-danger")
+            // startButton.addClass("btn-success");
     }
 });
 
 
-function stopService(nameid, uid){
+function stopService(nameid, uid) {
     var obj = new Object();
     obj.NameId = nameid;
     $.ajax({
@@ -233,12 +239,14 @@ function stopService(nameid, uid){
 }
 
 
-$.each(grid.dataSource.data(), function(key, val){
+$.each(grid.dataSource.data(), function(key, val) {
     var inSecond = 20 * 1000 //in per second
-    var myInterval = setInterval(function () {checkStat(val.nameid, val.grabinterval, val.uid, key)}, inSecond)
+    var myInterval = setInterval(function() {
+        checkStat(val.nameid, val.grabinterval, val.uid, key)
+    }, inSecond)
 });
 
-function checkStat(nameid, interval, uid, index){
+function checkStat(nameid, interval, uid, index) {
     var obj = new Object()
     obj.NameId = nameid
     $.ajax({
@@ -247,19 +255,18 @@ function checkStat(nameid, interval, uid, index){
         type: "POST",
         data: JSON.stringify(obj),
         success: function(data) {
-            console.log(data)
-            if (!data.grabStat && data.errorNote != ""){
+            if (!data.grabStat && data.errorNote != "") {
                 var dataGrid = gridDataSource.at(index);
                 errorStatus(data, dataGrid)
             } else if (data.name == nameid) {
-                if (data.isRun){
+                if (data.isRun) {
                     var dataGrid = gridDataSource.at(index);
                     runStatus(data, dataGrid, uid)
                 } else {
                     var dataGrid = gridDataSource.at(index);
                     stopStatus(data, dataGrid, uid)
                 }
-            } 
+            }
         },
         error: function(e) {
             console.log(e)
@@ -267,25 +274,25 @@ function checkStat(nameid, interval, uid, index){
     });
 }
 
-function runStatus(data, dataGrid, uid){
+function runStatus(data, dataGrid, uid) {
     dataGrid.set("lastGrab", data.lastDate)
     dataGrid.set("nextGrab", data.nextDate)
     dataGrid.set("grabStat", data.grabStat)
     dataGrid.set("note", data.errorNote)
-    dataGrid.set("status","RUN");
+    dataGrid.set("status", "RUN");
 }
 
-function stopStatus(data, dataGrid, uid){
+function stopStatus(data, dataGrid, uid) {
     dataGrid.set("lastGrab", data.lastDate)
     dataGrid.set("nextGrab", data.nextDate)
     dataGrid.set("grabStat", data.grabStat)
     dataGrid.set("note", data.errorNote)
-    dataGrid.set("status","STOP");
+    dataGrid.set("status", "STOP");
 }
 
 function errorStatus(data, dataGrid) {
     dataGrid.set("grabStat", data.grabStat)
     dataGrid.set("note", errorNote)
-    dataGrid.set("status","ERROR");
+    dataGrid.set("status", "ERROR");
 }
 </script>
