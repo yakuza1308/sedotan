@@ -245,7 +245,9 @@ iframe{
 							<tbody data-bind="foreach:datasettings">
 								<tr>
 									<td data-bind="text:name()==''?'-':name"></td>
-									<td data-bind="text:rowselector()==''?'-':rowselector"></td>
+									<td>
+										<div data-bind="text:rowselector()==''?'-':rowselector"></div>
+									</td>
 									<td class="align-center">
 										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.ActiveData('+$index()+')'}">
 											<span class="fa fa-edit"></span>
@@ -268,7 +270,7 @@ iframe{
 								Name
 							</label>
 							<div class="col-md-7">
-								<input type="text" data-bind="value:name" class="form-control"/>
+								<input type="text" data-bind="value:name" class="form-control input-sm"/>
 							</div>
 						</div>
 						<div class="row">
@@ -276,10 +278,10 @@ iframe{
 								Row Selector
 							</label>
 							<div class="col-md-7">
-								<div class="input-group">
+								<div class="input-group input-group-sm">
 									<input type="text" data-bind="value:rowselector" class="form-control"/>
 									<span class="input-group-btn">
-										<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
+										<button class="btn btn-primary" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
 											<span class="fa fa-search"></span>
 										</button>
 									</span>
@@ -300,20 +302,23 @@ iframe{
 							<div class="col-md-12">
 								<table width="100%" class="table">
 									<tr>
-										<th width="40%">Alias</th>
+										<th width="35%">Alias</th>
 										<th>Selector</th>
 									</tr>
 									<tbody data-bind="foreach:columnsettings">
 										<tr>
 											<td>
-												<input type="text" class="form-control" data-bind="value:alias"/>
+												<input type="text" class="form-control input-sm" data-bind="value:alias"/>
 											</td>
 											<td>
-												<div class="input-group">
+												<div class="input-group input-group-sm">
 													<input type="text" class="form-control" data-bind="value:selector"/>
 											      	<span class="input-group-btn">
-											        	<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetColumnSettings('+$index()+')'}">
+											        	<button class="btn btn-primary" data-bind="attr:{onclick:'Config.GetColumnSettings('+$index()+')'}">
 															<span class="fa fa-search"></span>
+														</button>
+														<button class="btn btn-default" data-bind="attr:{onclick:'Config.RemoveColumnSettings('+$index()+')'}">
+															<span class="fa fa-trash"></span>
 														</button>
 											      	</span>
 											    </div>
@@ -336,7 +341,7 @@ iframe{
 								Host
 							</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control" data-bind="value:connectioninfo.host"/>
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.host"/>
 							</div>
 						</div>
 						<div class="row" data-bind="visible:desttype()=='mongodb'">
@@ -344,7 +349,7 @@ iframe{
 								Database
 							</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control" data-bind="value:connectioninfo.database"/>
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.database"/>
 							</div>
 						</div>
 						<div class="row" data-bind="visible:desttype()=='mongodb'">
@@ -352,7 +357,7 @@ iframe{
 								Collection
 							</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control" data-bind="value:connectioninfo.collection"/>
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.collection"/>
 							</div>
 						</div>
 						<div class="row" data-bind="visible:desttype()=='csv'">
@@ -368,7 +373,7 @@ iframe{
 								Delimiter
 							</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control" data-bind="value:connectioninfo.settings.delimiter"/>
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.settings.delimiter"/>
 							</div>
 						</div>
 					</div>
@@ -453,7 +458,7 @@ iframe{
 
 					<button class="btn btn-default" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(1)">Back</button>
 					<button class="btn btn-default" data-bind="visible:ProcessNumber()==3" onclick="Config.ProcessNumber(2)">Back</button>
-					<button class="btn btn-success" data-bind="visible:ProcessNumber()==1,attr:{disabled:!Config.isURLSet()}" onclick="Config.ProcessNumber(2)">Next</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==1,attr:{disabled:!Config.isURLSet()}" onclick="Config.CheckNameID()">Next</button>
 					<button class="btn btn-success" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(3)">Next</button>
 					<button class="btn btn-success" data-bind="visible:ProcessNumber()==3,click:Save">Save</button>
 				</div>
@@ -461,9 +466,14 @@ iframe{
 		</div>
 		<div class="col-md-9" data-bind="attr:{'class':isURLSet()?'col-md-9':'col-md-12'}">
 			<div id="iframeTemplate">
+				<style>
+					body{
+						background: #FDFDFD;
+					}
+				</style>
 				<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
 				<div style="font-family:'Open Sans';">
-					<div class="align-center" style="text-align:center;font-size: 20px;color: #373e4a;">Result Preview</div>
+					<div class="align-center" style="text-align: center;font-size: 50px;color: #373e4a;margin-top: 170px">Result Preview</div>
 				</div>
 			</div>
 			<iframe name="URLPreview" id="URLPreview" width="100%" height="450px" frameborder="0"></iframe>
@@ -471,16 +481,31 @@ iframe{
 	</div>
 </div>
 <script type="text/javascript">
+	Config.CheckNameID = function(){
+		var nameid = Config.nameid();
+		if(nameid.trim()==""){
+			alert("Please input the Name ID")
+			return false;
+		}
+		Config.ProcessNumber(2);
+	}
 	Config.RemoveRowData = function(index){
 		var d = Config.datasettings()[index];
 		Config.datasettings.remove(d);
 	}
+	Config.RemoveColumnSettings = function(index){
+		var ActiveData = Config.ActiveData();
+		var data = Config.datasettings()[ActiveData].columnsettings()[index];
+		Config.datasettings()[ActiveData].columnsettings.remove(data);
+	}
 	Config.GetColumnSettings = function(index){
 		Config.isSelecting(true);
+		Config.selectedItem("");
 		Config.selectingWhat("columnsettings"+index);
 	}
 	Config.GetRowSelector = function(index){
 		Config.isSelecting(true);
+		Config.selectedItem("");
 		Config.selectingWhat("rowselector"+index);
 	}
 	Config.CompleteSelection = function(){
@@ -616,11 +641,11 @@ iframe{
 		}
 		var nodeName = obj.get()[0].nodeName.toLowerCase();
 		if(id!==""){
-			selector+=">"+nodeName+"#"+obj.attr("id").split(" ")[0]+":eq("+index+")";
+			selector+=" > "+nodeName+"#"+obj.attr("id").split(" ")[0]+":eq("+index+")";
 		}else if(classes!==""){
-			selector+=">"+nodeName+"."+obj.attr("class").split(" ")[0]+":eq("+index+")";
+			selector+=" > "+nodeName+"."+obj.attr("class").split(" ")[0]+":eq("+index+")";
 		}else{
-			selector+=">"+nodeName+":eq("+index+")";
+			selector+=" > "+nodeName+":eq("+index+")";
 		}
 		
 		var str = "<"+nodeName+" "+id+" "+classes+">..";
