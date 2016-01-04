@@ -1,7 +1,7 @@
 package modules
 
 import (
-	"bufio"
+	// "bufio"
 	"fmt"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/csv"
@@ -12,12 +12,13 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"strings"
+	// "strings"
 	"time"
 )
 
 type GrabModule struct {
-	nameId string
+	nameId, lastGrabTime string
+	gi, ti               time.Time
 }
 
 type StatService struct {
@@ -36,6 +37,11 @@ var (
 	grabber  *sdt.Grabber
 )
 
+func NewGrabService() *GrabModule {
+	g := new(GrabModule)
+	return g
+}
+
 func Process(datas []interface{}) (string, bool) {
 	var (
 		status    string
@@ -47,21 +53,36 @@ func Process(datas []interface{}) (string, bool) {
 	}
 
 	status, isServRun = StartService(grabs)
+
 	return status, isServRun
 }
 
 func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 	var e error
+	var gi, ti time.Duration
 	xGrabService := sdt.NewGrabService()
 	xGrabService.Name = data["nameid"].(string) //"irondcecom"
 	xGrabService.Url = data["url"].(string)     //"http://www.dce.com.cn/PublicWeb/MainServlet"
 
 	xGrabService.SourceType = sdt.SourceType_Http
 
-	xGrabService.GrabInterval = 5 * time.Minute
-	xGrabService.TimeOutInterval = 1 * time.Minute //time.Hour, time.Minute, time.Second
+	grabintervalToInt := toolkit.ToInt(data["grabinterval"])
+	timeintervalToInt := toolkit.ToInt(data["timeoutinterval"])
+	if data["intervaltype"].(string) == "seconds" {
+		gi = time.Duration(grabintervalToInt) * time.Second
+		ti = time.Duration(timeintervalToInt) * time.Second
+	} else if data["intervaltype"].(string) == "minutes" {
+		gi = time.Duration(grabintervalToInt) * time.Minute
+		ti = time.Duration(timeintervalToInt) * time.Minute
+	} else if data["intervaltype"].(string) == "hours" {
+		gi = time.Duration(grabintervalToInt) * time.Hour
+		ti = time.Duration(timeintervalToInt) * time.Hour
+	}
 
-	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, data["intervaltype"] /*"seconds"*/)
+	xGrabService.GrabInterval = gi    //* time.Minute
+	xGrabService.TimeOutInterval = ti //* time.Minute //time.Hour, time.Minute, time.Second
+
+	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", timeintervalToInt, data["intervaltype"] /*"seconds"*/)
 
 	grabConfig := sdt.Config{}
 
@@ -86,9 +107,9 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 	xGrabService.ServGrabber = sdt.NewGrabber(xGrabService.Url, data["calltype"].(string), &grabConfig)
 
 	logconfToMap, _ := toolkit.ToM(data["logconf"])
-	logpath := logconfToMap["logpath"].(string)         //"E:\\data\\vale\\log"
-	filename := logconfToMap["filename"].(string)       //"LOG-GRABDCETEST"
-	filepattern := logconfToMap["filepattern"].(string) //"20060102"
+	logpath := logconfToMap["logpath"].(string)           //"E:\\data\\vale\\log"
+	filename := logconfToMap["filename"].(string) + "-%s" //"LOG-GRABDCETEST"
+	filepattern := logconfToMap["filepattern"].(string)   //"20060102"
 
 	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
 	if e != nil {
@@ -187,7 +208,9 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 }
 
 func StartService(grabConfig *sdt.GrabService) (string, bool) {
+
 	e := grabConfig.StartService()
+
 	if e != nil {
 		return e.Error(), grabConfig.ServiceRunningStat
 	} else {
@@ -243,9 +266,10 @@ func StopService(grabConfig *sdt.GrabService) (string, bool) {
 	return grabConfig.Name, grabConfig.ServiceRunningStat
 }
 
-func CheckStat(datas []interface{}) interface{} {
+func (g *GrabModule) CheckStat(datas []interface{}) interface{} {
 	var (
-		grabStatus interface{}
+		grabStatus         interface{}
+		lastDate, nextDate string
 	)
 
 	for _, v := range datas {
@@ -253,58 +277,80 @@ func CheckStat(datas []interface{}) interface{} {
 
 		if knot.SharedObject().Get(vToMap["nameid"].(string)) != nil {
 			i := knot.SharedObject().Get(vToMap["nameid"].(string)).(*sdt.GrabService)
-			grabStatus = ReadLog(vToMap["logconf"], i.ServiceRunningStat, i.Name)
+			tLast := i.LastGrabExe.Format("2006/01/02 15:04:05")
+			if tLast != "0001/01/01 00:00:00" {
+				lastDate = tLast
+			}
+			tNext := i.NextGrabExe.Format("2006/01/02 15:04:05")
+			if tNext != "0001/01/01 00:00:00" {
+				nextDate = tNext
+			}
+			grabStatus = ReadLog(vToMap["logconf"], i.ServiceRunningStat, i.Name, lastDate, nextDate, i.LastGrabStat, i.ErrorNotes)
 		} else {
-			grabStatus = ReadLog(vToMap["logconf"], false, vToMap["nameid"].(string))
+			grabStatus = ReadLog(vToMap["logconf"], false, vToMap["nameid"].(string), "", "", false, "")
 		}
 	}
 
 	return grabStatus
 }
 
-func ReadLog(logConf interface{}, isRun bool, name string) interface{} {
+func ReadLog(logConf interface{}, isRun bool, name string, lastDate string, nextDate string, lastGrab bool, errorNote string) interface{} {
 	var grabsStatus = map[string]interface{}{}
-	var grabStat bool
+	// var grabStat bool
 
-	// dateNow := time.Now()
-	// logFile := fmt.Sprintf("%s\\%s%s!(EXTRA string=%s)", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string), "%", dateNow.Format(logConf.(map[string]interface{})["filepattern"].(string)))
-	logFile := fmt.Sprintf("%s\\%s", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string))
-
-	openLogFile, e := os.Open(logFile)
-	if e != nil {
-		grabsStatus["error"] = e.Error()
-		return grabsStatus["error"]
-	}
-	defer openLogFile.Close()
-
-	scanner := bufio.NewScanner(openLogFile)
-	i := 0
-	var lastLine string
-	for scanner.Scan() {
-		i++
-		lastLine = scanner.Text()
-
-		lastNum := i - 1
-		if i == lastNum {
-			break
-		}
-	}
-
-	if lastLine != "" {
-		splits := strings.Split(lastLine, " ")
-		if splits[0] == "INFO" {
-			grabStat = true
-		} else if splits[0] == "ERROR" {
-			grabStat = false
-		}
-
-		grabsStatus["note"] = strings.Join(splits[4:], " ")
-		grabsStatus["dateNow"] = splits[1]
-		grabsStatus["timeNow"] = splits[2]
-		grabsStatus["grabStat"] = grabStat
-	}
+	grabsStatus["errorNote"] = errorNote
+	grabsStatus["lastDate"] = lastDate
+	grabsStatus["nextDate"] = nextDate
+	grabsStatus["grabStat"] = lastGrab
 	grabsStatus["name"] = name
 	grabsStatus["isRun"] = isRun
+	// dateNow := time.Now()
+	// logFile := fmt.Sprintf("%s\\%s-%s", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string), dateNow.Format(logConf.(map[string]interface{})["filepattern"].(string)))
+	// // logFile := fmt.Sprintf("%s\\%s", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string))
 
+	// openLogFile, e := os.Open(logFile)
+	// if e != nil {
+	// 	if b := strings.Contains(e.Error(), "The system cannot find the file specified"); b {
+	// 		grabsStatus["grabStat"] = b
+	// 	} else {
+	// 		grabsStatus["grabStat"] = false
+	// 	}
+	// 	grabsStatus["error"] = e.Error()
+	// 	grabsStatus["name"] = name
+
+	// 	fmt.Printf("grabsStatus error:%v\n", grabsStatus)
+	// 	return grabsStatus
+	// }
+	// defer openLogFile.Close()
+
+	// scanner := bufio.NewScanner(openLogFile)
+	// i := 0
+	// var lastLine string
+	// for scanner.Scan() {
+	// 	i++
+	// 	lastLine = scanner.Text()
+
+	// 	lastNum := i - 1
+	// 	if i == lastNum {
+	// 		break
+	// 	}
+	// }
+
+	// if lastLine != "" {
+	// 	splits := strings.Split(lastLine, " ")
+	// 	if splits[0] == "INFO" {
+	// 		grabStat = true
+	// 	} else if splits[0] == "ERROR" {
+	// 		grabStat = false
+	// 	}
+
+	// 	grabsStatus["note"] = strings.Join(splits[4:], " ")
+	// 	grabsStatus["dateTimeNow"] = lastDate
+	// 	// grabsStatus["timeNow"] = splits[2]
+	// 	grabsStatus["grabStat"] = grabStat
+	// }
+	// grabsStatus["name"] = name
+	// grabsStatus["isRun"] = isRun
+	// fmt.Printf("grabsStatus:%v\n", grabsStatus)
 	return grabsStatus
 }
