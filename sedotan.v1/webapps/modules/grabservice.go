@@ -39,10 +39,6 @@ var (
 
 func NewGrabService() *GrabModule {
 	g := new(GrabModule)
-	// g.SourceType = SourceType_Http
-	// g.GrabInterval = 5 * time.Minute
-	// g.TimeOutInterval = 1 * time.Minute
-	// g.ServiceRunningStat = false
 	return g
 }
 
@@ -86,7 +82,7 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 	xGrabService.GrabInterval = gi    //* time.Minute
 	xGrabService.TimeOutInterval = ti //* time.Minute //time.Hour, time.Minute, time.Second
 
-	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, data["intervaltype"] /*"seconds"*/)
+	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", timeintervalToInt, data["intervaltype"] /*"seconds"*/)
 
 	grabConfig := sdt.Config{}
 
