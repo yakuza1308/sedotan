@@ -37,6 +37,13 @@ type GrabService struct {
 	ServiceRunningStat bool
 
 	ErrorNotes string
+
+	//Snapshot
+	StartDate  time.Time
+	EndDate    time.Time
+	GrabCount  int
+	RowGrabbed int
+	ErrorFound int
 }
 
 type DestInfo struct {
@@ -65,17 +72,23 @@ func (g *GrabService) execService() {
 				<-time.After(g.TimeOutInterval)
 			}
 
+			if !g.ServiceRunningStat {
+				continue
+			}
+
 			g.ErrorNotes = ""
 			g.LastGrabExe = time.Now()
 			g.NextGrabExe = time.Now().Add(g.GrabInterval)
 			g.LastGrabStat = true
 			g.Log.AddLog(fmt.Sprintf("[%s] Grab Started %s", g.Name, g.Url), "INFO")
+			g.GrabCount += 1
 
 			if e := g.ServGrabber.Grab(nil); e != nil {
 				g.ErrorNotes = fmt.Sprintf("[%s] Grab Failed %s, repeat after %s :%s", g.Name, g.Url, g.TimeOutIntervalInfo, e)
 				g.Log.AddLog(g.ErrorNotes, "ERROR")
 				g.NextGrabExe = time.Now().Add(g.TimeOutInterval)
 				g.LastGrabStat = false
+				g.ErrorFound += 1
 				continue
 			} else {
 				g.Log.AddLog(fmt.Sprintf("[%s] Grab Success %s", g.Name, g.Url), "INFO")
@@ -123,9 +136,11 @@ func (g *GrabService) execService() {
 						if e != nil {
 							g.ErrorNotes = fmt.Sprintf("[%s-%s] Unable to insert [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e)
 							g.Log.AddLog(g.ErrorNotes, "ERROR")
+							g.ErrorFound += 1
 						}
 						xN++
 					}
+					g.RowGrabbed += xN
 					q.Close()
 					g.DestDbox[key].IConnection.Close()
 
@@ -146,12 +161,19 @@ func (g *GrabService) StartService() error {
 	noErrorFound, e := g.validateService()
 
 	if noErrorFound {
+		g.StartDate = time.Now()
+		g.EndDate = time.Time{}
+		g.GrabCount = 0
+		g.RowGrabbed = 0
+		g.ErrorFound = 0
+
 		g.ServiceRunningStat = true
-		g.Log.AddLog(fmt.Sprintf("[%s] Running Service", g.Name), "INFO")
+		g.Log.AddLog(fmt.Sprintf("[%s] Service Running", g.Name), "INFO")
 		g.execService()
 	} else {
-		g.ErrorNotes = fmt.Sprintf("[%s] Running Service, Found : %s", g.Name, e)
+		g.ErrorNotes = fmt.Sprintf("[%s] Service Running, Found : %s", g.Name, e)
 		g.Log.AddLog(g.ErrorNotes, "ERROR")
+		g.ErrorFound += 1
 		return e
 	}
 
@@ -160,10 +182,12 @@ func (g *GrabService) StartService() error {
 
 func (g *GrabService) StopService() error {
 	if g.ServiceRunningStat {
+		g.EndDate = time.Now()
 		g.ServiceRunningStat = false
-		g.Log.AddLog(fmt.Sprintf("[%s] Stop Service", g.Name), "INFO")
+		g.Log.AddLog(fmt.Sprintf("[%s] Service Stop", g.Name), "INFO")
 	} else {
-		g.Log.AddLog(fmt.Sprintf("[%s] Stop Service, Found : Service Not Running", g.Name), "ERROR")
+		g.Log.AddLog(fmt.Sprintf("[%s] Service Stop, Found : Service Not Running", g.Name), "ERROR")
+		g.ErrorFound += 1
 		return errors.New("Service Not Running")
 	}
 

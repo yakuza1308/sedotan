@@ -68,14 +68,14 @@ func TestPost(t *testing.T) {
 
 func TestServiceGrabGet(t *testing.T) {
 
-	xGrabService := newGrabService()
+	xGrabService := NewGrabService()
 	xGrabService.Name = "goldshfecom"
 	xGrabService.Url = "http://www.shfe.com.cn/en/products/Gold/"
 
 	xGrabService.SourceType = SourceType_Http
 
-	xGrabService.GrabInterval = 5 * time.Minute
-	xGrabService.TimeOutInterval = 1 * time.Minute //time.Hour, time.Minute, time.Second
+	xGrabService.GrabInterval = 2 * time.Minute
+	xGrabService.TimeOutInterval = 5 * time.Second //time.Hour, time.Minute, time.Second
 
 	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, "seconds")
 
@@ -102,9 +102,9 @@ func TestServiceGrabGet(t *testing.T) {
 	// 	filename = tempLogConf.Get("filename", "").(string)
 	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
 
-	logpath := "E:\\WORKS\\data_test\\vale\\log"
-	filename := "LOG-GRABSHFETEST"
-	filepattern := "20060102"
+	logpath := "E:\\data\\vale\\log"
+	filename := "LOG-GRABSHFETEST-%s"
+	filepattern := "YYYYMMDD"
 
 	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
 	if e != nil {
@@ -132,16 +132,16 @@ func TestServiceGrabGet(t *testing.T) {
 	xGrabService.ServGrabber.DataSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
 
 	ci := dbox.ConnectionInfo{}
-	ci.Host = "E:\\WORKS\\data_test\\vale\\Data_Grab.csv"
+	ci.Host = "E:\\data\\vale\\Data_Grab.csv"
 	ci.Database = ""
 	ci.UserName = ""
 	ci.Password = ""
 	ci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",")
 
-	tempDestInfo.collection = ""
-	tempDestInfo.desttype = "csv"
+	tempDestInfo.Collection = ""
+	tempDestInfo.Desttype = "csv"
 
-	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.desttype, &ci)
+	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
 	if e != nil {
 		t.Errorf("Error Found : ", e)
 	}
@@ -155,10 +155,22 @@ func TestServiceGrabGet(t *testing.T) {
 		t.Errorf("Error Found : ", e)
 	} else {
 
+		fmt.Printf("[SUM] start %s, grab %d times, data retreive %d rows, error %d times\n", xGrabService.StartDate, xGrabService.GrabCount, xGrabService.RowGrabbed, xGrabService.ErrorFound)
 		for i := 0; i < 100; i++ {
 			fmt.Printf(".")
 			time.Sleep(1000 * time.Millisecond)
 		}
+
+		fmt.Println()
+		fmt.Printf("[SUM] start %s, grab %d times, data retreive %d rows, error %d times\n", xGrabService.StartDate, xGrabService.GrabCount, xGrabService.RowGrabbed, xGrabService.ErrorFound)
+
+		for i := 0; i < 100; i++ {
+			fmt.Printf(".")
+			time.Sleep(1000 * time.Millisecond)
+		}
+
+		fmt.Println()
+		fmt.Printf("[SUM] start %s, grab %d times, data retreive %d rows, error %d times\n", xGrabService.StartDate, xGrabService.GrabCount, xGrabService.RowGrabbed, xGrabService.ErrorFound)
 
 		e = xGrabService.StopService()
 		if e != nil {
@@ -169,7 +181,7 @@ func TestServiceGrabGet(t *testing.T) {
 
 func TestServiceGrabPost(t *testing.T) {
 
-	xGrabService := newGrabService()
+	xGrabService := NewGrabService()
 	xGrabService.Name = "irondcecom"
 	xGrabService.Url = "http://www.dce.com.cn/PublicWeb/MainServlet"
 
@@ -214,7 +226,7 @@ func TestServiceGrabPost(t *testing.T) {
 	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
 
 	logpath := "E:\\data\\vale\\log"
-	filename := "LOG-GRABDCETEST"
+	filename := "LOG-GRABDCETEST-%s"
 	filepattern := "20060102"
 
 	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
@@ -262,10 +274,10 @@ func TestServiceGrabPost(t *testing.T) {
 	ci.Password = ""
 	ci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",")
 
-	tempDestInfo.collection = ""
-	tempDestInfo.desttype = "csv"
+	tempDestInfo.Collection = ""
+	tempDestInfo.Desttype = "csv"
 
-	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.desttype, &ci)
+	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
 	if e != nil {
 		t.Errorf("Error Found : ", e)
 	}
