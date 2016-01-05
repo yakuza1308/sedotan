@@ -270,8 +270,9 @@ func (g *GrabModule) CheckStat(datas []interface{}) interface{} {
 	var (
 		grabStatus         interface{}
 		lastDate, nextDate string
+		//toolkit.M
 	)
-
+	var summaryNotes = toolkit.M{} //map[string]interface{}{}
 	for _, v := range datas {
 		vToMap, _ := toolkit.ToM(v)
 
@@ -285,20 +286,43 @@ func (g *GrabModule) CheckStat(datas []interface{}) interface{} {
 			if tNext != "0001/01/01 00:00:00" {
 				nextDate = tNext
 			}
-			grabStatus = ReadLog(vToMap["logconf"], i.ServiceRunningStat, i.Name, lastDate, nextDate, i.LastGrabStat, i.ErrorNotes)
+
+			startdate := i.StartDate.Format("2006/01/02 15:04:05")
+			enddate := i.EndDate.Format("2006/01/02 15:04:05")
+			summaryNotes.Set("startDate", startdate)
+			summaryNotes.Set("endDate", enddate)
+			summaryNotes.Set("grabCount", i.GrabCount)
+			summaryNotes.Set("rowGrabbed", i.RowGrabbed)
+			summaryNotes.Set("errorFound", i.ErrorFound)
+
+			// if i.ErrorNotes != "" {
+			// 	summaryNotes["errorNote"] = i.ErrorNotes
+			// } else {
+			// 	startdate := i.StartDate.Format("2006/01/02 15:04:05")
+			// 	enddate := i.EndDate.Format("2006/01/02 15:04:05")
+			// 	summaryNotes["startDate"] = startdate
+			// 	summaryNotes["endDate"] = enddate
+			// 	summaryNotes["grabCount"] = i.GrabCount
+			// 	summaryNotes["rowGrabbed"] = i.RowGrabbed
+			// 	summaryNotes["errorFound"] = i.ErrorFound
+			// }
+
+			grabStatus = ReadLog(vToMap["logconf"], i.ServiceRunningStat, i.Name, lastDate, nextDate, i.LastGrabStat, summaryNotes)
 		} else {
-			grabStatus = ReadLog(vToMap["logconf"], false, vToMap["nameid"].(string), "", "", false, "")
+			// summaryNotes["errorNote"] = ""
+			summaryNotes.Set("errorFound", 0)
+			grabStatus = ReadLog(vToMap["logconf"], false, vToMap["nameid"].(string), "", "", false, summaryNotes)
 		}
 	}
 
 	return grabStatus
 }
 
-func ReadLog(logConf interface{}, isRun bool, name string, lastDate string, nextDate string, lastGrab bool, errorNote string) interface{} {
+func ReadLog(logConf interface{}, isRun bool, name string, lastDate string, nextDate string, lastGrab bool, summaryNotes toolkit.M) interface{} {
 	var grabsStatus = map[string]interface{}{}
 	// var grabStat bool
 
-	grabsStatus["errorNote"] = errorNote
+	grabsStatus["note"] = summaryNotes
 	grabsStatus["lastDate"] = lastDate
 	grabsStatus["nextDate"] = nextDate
 	grabsStatus["grabStat"] = lastGrab

@@ -1,11 +1,12 @@
 package controllers
 
 import (
-	// "fmt"
+	"fmt"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/json"
 	"github.com/eaciit/knot/knot.v1"
 	"github.com/eaciit/sedotan/sedotan.v1/webapps/modules"
+	"reflect"
 	"strings"
 )
 
@@ -111,21 +112,49 @@ func (a *DashboardController) Stat(k *knot.WebContext) interface{} {
 	return grabStatus
 }
 
-func Getquery(nameid string) ([]interface{}, string) {
+func Getquery(nameid string) ([]interface{}, error) {
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	if e != nil {
-		return nil, e.Error()
+		return nil, e
 	}
 
 	e = c.Connect()
 	if e != nil {
-		return nil, e.Error()
+		return nil, e
 	}
 	defer c.Close()
 
 	csr, e := c.NewQuery().Where(dbox.Eq("nameid", nameid)).Cursor(nil)
+	if e != nil {
+		return nil, e
+	}
 
 	ds, e := csr.Fetch(nil, 0, false)
-	return ds.Data, ""
+	if e != nil {
+		return nil, e
+	}
+	return ds.Data, nil
+}
+
+func (a *DashboardController) Gethistory(k *knot.WebContext) interface{} {
+	k.Config.OutputType = knot.OutputJson
+	t := struct {
+		NameId string
+	}{}
+	e := k.GetPayload(&t)
+	if e != nil {
+		return e.Error()
+	}
+
+	hm := modules.NewHistory(t.NameId)
+	hs := hm.OpenHistory()
+
+	if reflect.ValueOf(hs).Kind() == reflect.String {
+		if strings.Contains(hs.(string), "Cannot Open File") {
+			return nil
+		}
+	}
+	fmt.Printf("hs:%v\n", hs)
+	return hs
 }
