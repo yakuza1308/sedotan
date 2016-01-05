@@ -225,8 +225,17 @@ span.web-app-status {
 .navbar-nav {
 	margin-left: 10px;
 }
-.navbar-nav li {
 
+.navbar-inverse .navbar-nav > .active > a, 
+.navbar-inverse .navbar-nav > .active > a:hover, 
+.navbar-inverse .navbar-nav > .active > a:focus {
+	color: #333;
+    background-color: #FCBD1A;
+}
+
+.navbar-nav li.active {
+	color: #333;
+    background-color: #FCBD1A;
 }
 
 .navbar-header .navbar-nav > li > a {

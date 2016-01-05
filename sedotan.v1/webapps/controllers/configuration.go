@@ -10,6 +10,7 @@ import (
 	tk "github.com/eaciit/toolkit"
 	"os"
 	"strings"
+	"time"
 )
 
 var (
@@ -71,6 +72,7 @@ func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
 	if d.IsEdit == true {
 		e = c.NewQuery().Where(dbox.Eq("nameid", d.NameID)).Delete().Exec(nil)
 	}
+	time.Sleep(1200 * time.Millisecond)
 	e = c.NewQuery().Insert().Exec(tk.M{"data": current_data})
 	if e != nil {
 		fmt.Println("Found : ", e)
