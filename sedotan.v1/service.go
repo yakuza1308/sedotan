@@ -26,6 +26,7 @@ type GrabService struct {
 	TimeOutInterval     time.Duration
 	TimeOutIntervalInfo string
 	DestDbox            map[string]*DestInfo
+	HistDbox            *DestInfo
 	Log                 *toolkit.LogEngine
 
 	ServGrabber *Grabber
@@ -120,6 +121,7 @@ func (g *GrabService) execService() {
 						q = g.DestDbox[key].IConnection.NewQuery().SetConfig("multiexec", true).From(g.DestDbox[key].Collection).Save()
 					}
 					xN := 0
+					iN := 0
 					for _, doc := range docs {
 						for key, val := range doc {
 							doc[key] = strings.TrimSpace(fmt.Sprintf("%s", val))
@@ -137,6 +139,8 @@ func (g *GrabService) execService() {
 							g.ErrorNotes = fmt.Sprintf("[%s-%s] Unable to insert [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e)
 							g.Log.AddLog(g.ErrorNotes, "ERROR")
 							g.ErrorFound += 1
+						} else {
+							iN += 1
 						}
 						xN++
 					}
@@ -145,6 +149,30 @@ func (g *GrabService) execService() {
 					g.DestDbox[key].IConnection.Close()
 
 					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished, %d record fetch", g.Name, key, xN), "INFO")
+
+					//ADD History
+					historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
+						Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED")
+					if g.LastGrabStat {
+						historyservice.Set("grabstatus", "SUCCESS")
+					}
+
+					e = g.HistDbox.IConnection.Connect()
+					if e != nil {
+						g.ErrorNotes = fmt.Sprintf("[%s-%s] Connect to history failed [%s-%s]:%s", g.Name, key, g.HistDbox.Desttype, g.HistDbox.IConnection.Info().Host, e)
+						g.Log.AddLog(g.ErrorNotes, "ERROR")
+					}
+
+					if g.HistDbox.Collection == "" {
+						e = g.HistDbox.IConnection.NewQuery().Insert().Exec(toolkit.M{"data": historyservice})
+					} else {
+						e = g.HistDbox.IConnection.NewQuery().From(g.DestDbox[key].Collection).Insert().Exec(toolkit.M{"data": historyservice})
+					}
+
+					if e != nil {
+						g.ErrorNotes = fmt.Sprintf("[%s-%s] Insert to history failed [%s-%s]:%s", g.Name, key, g.HistDbox.Desttype, g.HistDbox.IConnection.Info().Host, e)
+						g.Log.AddLog(g.ErrorNotes, "ERROR")
+					}
 				}
 			}
 		}
