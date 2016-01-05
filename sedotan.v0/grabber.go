@@ -8,6 +8,7 @@ import (
 	"github.com/eaciit/toolkit"
 	"net/http"
 	"net/http/cookiejar"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -45,6 +46,7 @@ type Config struct {
 type DataSetting struct {
 	RowSelector    string
 	RowDeleteCond  toolkit.M
+	RowIncludeCond toolkit.M
 	ColumnSettings []*GrabColumn
 }
 
@@ -214,7 +216,7 @@ func (g *Grabber) ResultFromHtml(dataSettingId string, out interface{}) error {
 			m.Set(columnId, value)
 		}
 
-		if !(g.Config.DataSettings[dataSettingId].getCondition(m)) {
+		if !(g.Config.DataSettings[dataSettingId].getDeleteCondition(m)) {
 			ms = append(ms, m)
 		}
 	}
@@ -224,11 +226,20 @@ func (g *Grabber) ResultFromHtml(dataSettingId string, out interface{}) error {
 	return nil
 }
 
-func (ds *DataSetting) getCondition(dataCheck toolkit.M) bool {
+func (ds *DataSetting) getDeleteCondition(dataCheck toolkit.M) bool {
 	resBool := false
 
 	if len(ds.RowDeleteCond) > 0 {
 		resBool = foundCondition(dataCheck, ds.RowDeleteCond)
+	}
+
+	if !resBool && len(ds.RowIncludeCond) > 0 {
+		resBool = true
+		iResBool := true
+		iResBool = foundCondition(dataCheck, ds.RowIncludeCond)
+		if iResBool {
+			resBool = false
+		}
 	}
 
 	return resBool
@@ -257,8 +268,18 @@ func foundCondition(dataCheck toolkit.M, cond toolkit.M) bool {
 					}
 				}
 			}
-		} else if val != dataCheck.Get(key, "").(string) {
-			resBool = false
+		} else {
+			switch key {
+			case "$regex":
+				rVal := val.(map[string]interface{})
+				for rKey, mapVal := range rVal {
+					resBool, _ = regexp.MatchString(mapVal.(string), dataCheck.Get(rKey, "").(string))
+				}
+			default:
+				if val != dataCheck.Get(key, "").(string) {
+					resBool = false
+				}
+			}
 		}
 	}
 
