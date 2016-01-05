@@ -178,7 +178,6 @@ func (g *Grabber) ResultString() string {
 	if g.Response == nil {
 		return ""
 	}
-
 	return string(g.bodyByte)
 }
 
@@ -269,16 +268,35 @@ func foundCondition(dataCheck toolkit.M, cond toolkit.M) bool {
 				}
 			}
 		} else {
-			switch key {
-			case "$regex":
-				rVal := val.(map[string]interface{})
-				for rKey, mapVal := range rVal {
-					resBool, _ = regexp.MatchString(mapVal.(string), dataCheck.Get(rKey, "").(string))
+			if reflect.ValueOf(val).Kind() == reflect.Map {
+				mVal := val.(map[string]interface{})
+				tomVal, _ := toolkit.ToM(mVal)
+				switch {
+				case tomVal.Has("$ne"):
+					if tomVal["$ne"].(string) == dataCheck.Get(key, "").(string) {
+						resBool = false
+					}
+				case tomVal.Has("$regex"):
+					resBool, _ = regexp.MatchString(tomVal["$regex"].(string), dataCheck.Get(key, "").(string))
+				case tomVal.Has("$gt"):
+					if tomVal["$gt"].(string) >= dataCheck.Get(key, "").(string) {
+						resBool = false
+					}
+				case tomVal.Has("$gte"):
+					if tomVal["$gte"].(string) > dataCheck.Get(key, "").(string) {
+						resBool = false
+					}
+				case tomVal.Has("$lt"):
+					if tomVal["$lt"].(string) <= dataCheck.Get(key, "").(string) {
+						resBool = false
+					}
+				case tomVal.Has("$lte"):
+					if tomVal["$lte"].(string) < dataCheck.Get(key, "").(string) {
+						resBool = false
+					}
 				}
-			default:
-				if val != dataCheck.Get(key, "").(string) {
-					resBool = false
-				}
+			} else if reflect.ValueOf(val).Kind() == reflect.String && val != dataCheck.Get(key, "").(string) {
+				resBool = false
 			}
 		}
 	}
