@@ -38,7 +38,7 @@ type GrabService struct {
 
 	ErrorNotes string
 
-	//History||Summary
+	//Snapshot
 	StartDate  time.Time
 	EndDate    time.Time
 	GrabCount  int
@@ -70,6 +70,10 @@ func (g *GrabService) execService() {
 				<-time.After(g.GrabInterval)
 			} else {
 				<-time.After(g.TimeOutInterval)
+			}
+
+			if !g.ServiceRunningStat {
+				continue
 			}
 
 			g.ErrorNotes = ""
@@ -164,10 +168,10 @@ func (g *GrabService) StartService() error {
 		g.ErrorFound = 0
 
 		g.ServiceRunningStat = true
-		g.Log.AddLog(fmt.Sprintf("[%s] Running Service", g.Name), "INFO")
+		g.Log.AddLog(fmt.Sprintf("[%s] Service Running", g.Name), "INFO")
 		g.execService()
 	} else {
-		g.ErrorNotes = fmt.Sprintf("[%s] Running Service, Found : %s", g.Name, e)
+		g.ErrorNotes = fmt.Sprintf("[%s] Service Running, Found : %s", g.Name, e)
 		g.Log.AddLog(g.ErrorNotes, "ERROR")
 		g.ErrorFound += 1
 		return e
@@ -180,9 +184,9 @@ func (g *GrabService) StopService() error {
 	if g.ServiceRunningStat {
 		g.EndDate = time.Now()
 		g.ServiceRunningStat = false
-		g.Log.AddLog(fmt.Sprintf("[%s] Stop Service", g.Name), "INFO")
+		g.Log.AddLog(fmt.Sprintf("[%s] Service Stop", g.Name), "INFO")
 	} else {
-		g.Log.AddLog(fmt.Sprintf("[%s] Stop Service, Found : Service Not Running", g.Name), "ERROR")
+		g.Log.AddLog(fmt.Sprintf("[%s] Service Stop, Found : Service Not Running", g.Name), "ERROR")
 		g.ErrorFound += 1
 		return errors.New("Service Not Running")
 	}
