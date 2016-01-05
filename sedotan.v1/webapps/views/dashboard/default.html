@@ -1,5 +1,30 @@
 <h1>Dashboard</h1>
-<div id="grid"></div>
+<br />
+<script type="text/javascript">
+var Config = {
+    isHistory: ko.observable(false),
+    isSnapShot: ko.observable(true)
+}
+</script>
+<div data-bind="with:Config">
+    <div class="row">
+        <div class="col-md-12">
+            <div data-bind="visible:isSnapShot()" id="grid"></div>
+        </div>
+    </div>
+    <div class="row">
+        <div data-bind="visible:isHistory()">
+            <div class="col-md-12">
+                <button class="btn btn-primary" data-bind="click:GoBack"><span class="glyphicon glyphicon-chevron-left"></span> Go Back</button>
+            </div>
+            <br />
+            <div class="col-md-12">
+                <div id="grid-history"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="details"></div>
 <style>
 .critical {
@@ -28,13 +53,21 @@
         #= data.status == "STOP" ? "Start" : "Stop" #
     </a>
 </script>
-<script type="text/x-kendo-template" id="detail-template">
-    <div id="details-container">
-    </div>
-</script>
-<script>
 
-var wnd, detailsTemplate;
+<!-- <script type="text/x-kendo-template" id="detail-template">
+    <div id="details-container">
+        <input id="datePick-#:data.nameid#" style="width: 100%;" />
+    </div>
+</script> -->
+
+<script>
+model.PageId("Dashboard");
+
+$(document).ready(function () {
+
+});
+
+// var wnd, detailsTemplate;
 var localdata = {}
 $.ajax({
     url: "{{BaseUrl}}dashboard/griddashboard",
@@ -58,6 +91,7 @@ $.ajax({
             datas.push(dataPush)
         });
         localdata = datas
+        // Config.Data(datas)
     },
     error: function(e) {
         console.log(e)
@@ -72,55 +106,20 @@ var localDataSources = new kendo.data.DataSource({
 //Grid
 var commonSettings = {
     dataSource: localDataSources,
-    // height: 550,
     sortable: true,
-    pageable: {
-        // refresh: true,
-        pageSizes: true,
-        buttonCount: 5
-    },
-    columns: [{
-        template: kendo.template($("#command-template").html()),
-        width: 80
-    }, {
-        field: "status",
-        title: "STATUS",
-        width: 60
-    }, {
-        field: "nameid",
-        title: "NAME ID",
-        width: 100
-    }, {
-        field: "url",
-        title: "SOURCE",
-        // width: 300
-    }, {
-        field: "grabinterval",
-        title: "INTERVAL",
-        width: 85
-    }, {
-        field: "lastGrab",
-        title: "LAST GRAB",
-        width: 120
-    }, {
-        field: "nextGrab",
-        title: "NEXT GRAB",
-        width: 120
-    }, {
-        field: "grabStat",
-        title: "GRAB STAT",
-        width: 70
-    }, {
-        field: "note",
-        title: "NOTE"
-    }, {
-        command: {
-            text: "Log",
-            click: showDetails
-        },
-        title: "",
-        width: "80px"
-    }]
+    pageable: {/* refresh: true, */pageSizes: true,buttonCount: 5},
+    columns: [
+    {template: kendo.template($("#command-template").html()),width: 80}, 
+    {field: "status",title: "STATUS",width: 60}, 
+    {field: "nameid",title: "NAME ID",width: 100}, 
+    {field: "url",title: "SOURCE",}, 
+    {field: "grabinterval",title: "INTERVAL",width: 85}, 
+    {field: "lastGrab",title: "LAST GRAB",width: 120}, 
+    {field: "nextGrab",title: "NEXT GRAB",width: 120}, 
+    {field: "grabStat",title: "GRAB STAT",width: 70}, 
+    {field: "note",title: "NOTE"}, 
+    {field: "history",title: "History",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.History(\"#:nameid#\")'><span>History</span></button>"}
+    ]
 }
 
 function getStatusClass(stat) {
@@ -157,26 +156,55 @@ localDataSources.read()
 
 var grid = $("#grid").data("kendoGrid");
 var gridDataSource = grid.dataSource
-
+/*
 wnd = $("#details")
     .kendoWindow({
-        title: "LOG Details",
+        title: "Please choose date",
         modal: true,
         visible: false,
         resizable: false,
-        width: 1024
+        width: 250
     }).data("kendoWindow").center();
 
 detailsTemplate = kendo.template($("#detail-template").html());
 
 function showDetails(e) {
     e.preventDefault();
-
     var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
     wnd.content(detailsTemplate(dataItem));
     wnd.center().open();
+    
+    $("#datePick-" + dataItem.nameid).kendoDatePicker({
+        // value:new Date(),
+        format: "yyyy/MM/dd",
+        max: new Date(new Date()),
+        change: onChange
+    });
 }
 
+function onChange(e) {
+    e.preventDefault();
+    var dateString = kendo.toString(this.value(), 'd');
+    // var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+    console.log(e.View)
+    var obj = new Object();
+    obj.date = dateString;
+
+    // $.ajax({
+    //     url: "{{BaseUrl}}dashboard/getlog",
+    //     dataType: "json",
+    //     type: "POST",
+    //     data: JSON.stringify(obj),
+    //     success: function(data) {
+    //         console.log(data);
+    //     },
+    //     error: function(e) {
+    //         console.log(e);
+    //     }
+    // });
+    // alert("Change :: " + kendo.toString(this.value(), 'd'));
+}
+*/
 function startService(nameid, uid) {
     var obj = new Object();
     obj.NameId = nameid;
@@ -240,7 +268,7 @@ function stopService(nameid, uid) {
 
 
 $.each(grid.dataSource.data(), function(key, val) {
-    var inSecond = 20 * 1000 //in per second
+    var inSecond = 50000 //every 5 minutes
     var myInterval = setInterval(function() {
         checkStat(val.nameid, val.grabinterval, val.uid, key)
     }, inSecond)
@@ -295,4 +323,46 @@ function errorStatus(data, dataGrid) {
     dataGrid.set("note", errorNote)
     dataGrid.set("status", "ERROR");
 }
+
+Config.History = function(nameid){
+    Config.isHistory(true);
+    Config.isSnapShot(false)
+
+    var obj = new Object();
+    obj.NameId = nameid
+    // $.ajax({
+    //     url: "{{BaseUrl}}dashboard/gethistory",
+    //     dataType: "json",
+    //     type: "POST",
+    //     data: JSON.stringify(obj),
+    //     success: function(data) {
+    //         Config.Data(data);
+    //         console.log(data);
+    //     },
+    //     error: function(e) {
+    //         console.log(e);
+    //     }
+    // });
+    // var dataSource = Config.Data();
+    $("#grid-history").kendoGrid({
+        dataSource:{
+            data: localdata,
+            pageSize: 10
+        },
+        sortable: true,
+        pageable: {/* refresh: true, */pageSizes: true,buttonCount: 5},
+        columns: [
+        {field: "id",title: "ID"}, 
+        {field: "startexecute",title: "START"}, 
+        {field: "status",title: "STATUS"}, 
+        {field: "grabcount",title: "GRAB COUNT",width: 85},
+        {field: "logBtn",title: "&nbsp;",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.Log(\"#:nameid#\")'><span>Log</span></button>"}
+        ]
+    });
+}
+
+Config.GoBack = function(){
+        Config.isHistory(false);
+        Config.isSnapShot(true);
+    }
 </script>

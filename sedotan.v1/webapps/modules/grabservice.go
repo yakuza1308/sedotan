@@ -354,3 +354,24 @@ func ReadLog(logConf interface{}, isRun bool, name string, lastDate string, next
 	// fmt.Printf("grabsStatus:%v\n", grabsStatus)
 	return grabsStatus
 }
+
+// func OpenLog(dateString string) string {
+// 	// buka file
+// 	var file, err = os.OpenFile(path, os.O_RDONLY, 0644)
+// 	checkError(err)
+// 	defer file.Close()
+
+// 	// baca file
+// 	var text = make([]byte, 1024)
+// 	for {
+// 		n, err := file.Read(text)
+// 		if err != io.EOF {
+// 			checkError(err)
+// 		}
+// 		if n == 0 {
+// 			break
+// 		}
+// 	}
+// 	fmt.Println(string(text))
+// 	checkError(err)
+// }

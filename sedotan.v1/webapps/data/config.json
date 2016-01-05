@@ -48,7 +48,11 @@
           }
         ],
         "connectioninfo": {
+<<<<<<< HEAD
+          "host": "E:\\WORKS\\data_test\\vale\\Data_Grab.csv",
+=======
           "host": "E:\\data\\vale\\Data_Grab.csv",
+>>>>>>> master
           "settings": {
             "delimiter": ",",
             "useheader": true
@@ -64,7 +68,11 @@
     "logconf": {
       "filename": "LOG-GRABSHFE",
       "filepattern": "20060102",
+<<<<<<< HEAD
+      "logpath": "E:\\WORKS\\data_test\\vale\\log"
+=======
       "logpath": "E:\\data\\vale\\log"
+>>>>>>> master
     },
     "nameid": "goldshfecom",
     "sourcetype": "SourceType_Http",
@@ -162,7 +170,11 @@
             }
           ]
         },
+<<<<<<< HEAD
+        "rowselector": "table .table tbody tr"
+=======
         "rowselector": "table .table tbody"
+>>>>>>> master
       }
     ],
     "grabconf": {
@@ -179,7 +191,11 @@
     "logconf": {
       "filename": "LOG-GRABDCE",
       "filepattern": "20060102",
+<<<<<<< HEAD
+      "logpath": "E:\\WORKS\\data_test\\vale\\log"
+=======
       "logpath": "E:\\data\\vale\\log"
+>>>>>>> master
     },
     "nameid": "irondcecomcn",
     "sourcetype": "SourceType_Http",
