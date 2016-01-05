@@ -45,10 +45,19 @@ iframe{
 	border-bottom:3px solid #0672A0;
 	margin-bottom: 10px;
 }
+.no-margin-bottom{
+	margin-bottom: 0px;
+}
 </style>
 <h1>Configuration</h1><br/>
 <script type="text/javascript">
 	model.PageId("Configuration");
+	function ConditionBase(){
+		var self = this;
+		self.column = ko.observable("");
+		self.value = ko.observable("");
+		return self;
+	}
 	function ColumnBase(){
 		var self = this;
 		self.index = ko.observable(0);
@@ -61,6 +70,8 @@ iframe{
 		self.name = ko.observable("");
 		self.rowselector = ko.observable("");
 		self.columnsettings = ko.observableArray([]);
+		self.rowdeletecond = ko.observable("");
+		self.rowdeletelist =  ko.observableArray([]);
 		self.desttype = ko.observable("csv");
 		self.connectioninfo = {
 			host:ko.observable(""),
@@ -71,6 +82,13 @@ iframe{
 				delimiter:ko.observable(","),
 			},
 		};
+		self.rowdeletecond.subscribe(function(newVal){
+			if(newVal==""){
+				self.rowdeletelist([]);
+			}else if(self.rowdeletelist().length==0){
+				self.rowdeletelist.push(new ConditionBase())
+			}
+		})
 		return self;
 	}
 	var Config = {
@@ -98,6 +116,13 @@ iframe{
 		},
 
 		// Data Source
+		operatorList:ko.observableArray([
+				{Id:"",Title:"-"},
+				{Id:"$and",Title:"AND"},
+				{Id:"$or",Title:"OR"},
+				{Id:"$nand",Title:"NAND"},
+				{Id:"$nor",Title:"NOR"},
+			]),
 		calltypeList:ko.observableArray(["GET","POST"]),
 		intervalList:ko.observableArray(["seconds","minutes","hours"]),
 		sourcetypeList:ko.observableArray(["SourceType_Http"]),
@@ -330,6 +355,47 @@ iframe{
 						</div>
 						<div class="row">
 							<label class="col-md-5">
+								Row Delete Cond.
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:rowdeletecond,data:$parent.operatorList,dataTextField: 'Title', dataValueField: 'Id'}" />
+							</div>
+						</div>
+						<div class="row" data-bind="visible:rowdeletecond()!==''">
+							<div class="col-md-12">
+								<table width="100%" class="table no-margin-bottom">
+									<tr>
+										<th width="35%">Column</th>
+										<th>Value</th>
+									</tr>
+									<tbody data-bind="foreach:rowdeletelist">
+										<tr>
+											<td>
+												<input type="text" class="form-control input-sm" data-bind="value:column"/>
+											</td>
+											<td>
+												<div class="input-group input-group-sm">
+													<input type="text" class="form-control" data-bind="value:value"/>
+											      	<span class="input-group-btn">
+														<button class="btn btn-default" data-bind="attr:{onclick:'Config.RemoveCondition('+$index()+')'}">
+															<span class="fa fa-trash"></span>
+														</button>
+											      	</span>
+											    </div>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+								<div class="align-right">
+									<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.AddCondition('+$index()+')'}">
+										<span class="fa fa-plus"></span> add condition
+									</button>
+								</div>
+							</div>
+						</div>
+
+						<div class="row">
+							<label class="col-md-5">
 								Destination Type
 							</label>
 							<div class="col-md-7">
@@ -493,6 +559,11 @@ iframe{
 		var d = Config.datasettings()[index];
 		Config.datasettings.remove(d);
 	}
+	Config.RemoveCondition = function(index){
+		var ActiveData = Config.ActiveData();
+		var data = Config.datasettings()[ActiveData].rowdeletelist()[index];
+		Config.datasettings()[ActiveData].rowdeletelist.remove(data);
+	}
 	Config.RemoveColumnSettings = function(index){
 		var ActiveData = Config.ActiveData();
 		var data = Config.datasettings()[ActiveData].columnsettings()[index];
@@ -553,7 +624,9 @@ iframe{
 	Config.AddColumn = function(index){
 		Config.datasettings()[index].columnsettings.push(new ColumnBase());
 	}
-
+	Config.AddCondition = function(index){
+		Config.datasettings()[index].rowdeletelist.push(new ConditionBase());	
+	}
 	Config.Reset = function(){
 		Config.url("");
 		Config.parameter("");
@@ -707,6 +780,8 @@ iframe{
 		delete data["Data"]
 		delete data["isFormActive"]
 		delete data["isURLSet"]
+		
+		delete data["operatorList"]
 		delete data["calltypeList"]
 		delete data["intervalList"]
 		delete data["sourcetypeList"]
@@ -741,8 +816,26 @@ iframe{
 				default:
 					break;
 			}
+			var rowdeletecond = data.datasettings()[i].rowdeletecond();
+			if(rowdeletecond==""){
+				delete data.datasettings()[i]["rowdeletelist"]
+				delete data.datasettings()[i]["rowdeletecond"]
+			}else{
+				var condition = {}
+				condition[rowdeletecond] = [];
+				var rowdeletelist = data.datasettings()[i].rowdeletelist();
+				for(var r in rowdeletelist){
+					var obj = {};
+					var col = rowdeletelist[r].column();
+					var val = rowdeletelist[r].value();
+					obj[col] = val
+					condition[rowdeletecond].push(obj);
+				} 
+				data.datasettings()[i].rowdeletecond(condition);
+				delete data.datasettings()[i]["rowdeletelist"]
+			}
 		}
-
+		console.log(data);
 		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
 		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
 		data.logconf.logpath("data/logs/"+filename+"/");
