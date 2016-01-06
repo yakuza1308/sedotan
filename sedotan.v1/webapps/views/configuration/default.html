@@ -95,9 +95,9 @@ iframe{
 		Data:ko.observableArray([]),
 		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
-		url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
+		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
 		// url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
-		// url:ko.observable(""),
+		url:ko.observable(""),
 		nameid:ko.observable(""),
 		calltype:ko.observable("GET"),
 		parameter:ko.observable(""),
@@ -733,7 +733,7 @@ iframe{
 			if (prevNode == node){
 				idx=0;
 			}
-			if($(this).html()!==undefined && node!== "link" && node !=="script"){
+			if($(this).html()!==undefined && node!== "link" && node !=="script" && node !=="br" && node !=="hr" ){
 				linenumber = Config.GetElement($(this),parseFloat(parent+1),linenumber,idx,selector);
 				idx++;
 			}
