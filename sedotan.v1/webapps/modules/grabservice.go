@@ -32,9 +32,10 @@ var (
 		return d + "/../"
 	}()
 
-	filename = wd + "data\\config.json"
-	grabs    *sdt.GrabService
-	grabber  *sdt.Grabber
+	filename    = wd + "data\\config.json"
+	historyPath = wd + "data\\history\\"
+	grabs       *sdt.GrabService
+	grabber     *sdt.Grabber
 )
 
 func NewGrabService() *GrabModule {
@@ -202,6 +203,30 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		}
 
 		xGrabService.DestDbox[dataToMap["name"].(string)] = &tempDestInfo
+
+		//=History===========================================================
+		tempHistInfo := sdt.DestInfo{}
+		hci := dbox.ConnectionInfo{}
+		dateNow := time.Now()
+		dateFormat := dateNow.Format("20060102")
+		historyPath := fmt.Sprintf("%s%s-%s.csv", historyPath, xGrabService.Name, dateFormat)
+
+		hci.Host = historyPath
+		hci.Database = ""
+		hci.UserName = ""
+		hci.Password = ""
+		hci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",").Set("newfile", true)
+
+		tempHistInfo.Collection = ""
+		tempHistInfo.Desttype = "csv"
+
+		tempHistInfo.IConnection, e = dbox.NewConnection(tempHistInfo.Desttype, &hci)
+		if e != nil {
+			return nil, e.Error()
+		}
+
+		xGrabService.HistDbox = &tempHistInfo
+		//===================================================================
 	}
 
 	return xGrabService, ""
@@ -295,21 +320,8 @@ func (g *GrabModule) CheckStat(datas []interface{}) interface{} {
 			summaryNotes.Set("rowGrabbed", i.RowGrabbed)
 			summaryNotes.Set("errorFound", i.ErrorFound)
 
-			// if i.ErrorNotes != "" {
-			// 	summaryNotes["errorNote"] = i.ErrorNotes
-			// } else {
-			// 	startdate := i.StartDate.Format("2006/01/02 15:04:05")
-			// 	enddate := i.EndDate.Format("2006/01/02 15:04:05")
-			// 	summaryNotes["startDate"] = startdate
-			// 	summaryNotes["endDate"] = enddate
-			// 	summaryNotes["grabCount"] = i.GrabCount
-			// 	summaryNotes["rowGrabbed"] = i.RowGrabbed
-			// 	summaryNotes["errorFound"] = i.ErrorFound
-			// }
-
 			grabStatus = ReadLog(vToMap["logconf"], i.ServiceRunningStat, i.Name, lastDate, nextDate, i.LastGrabStat, summaryNotes)
 		} else {
-			// summaryNotes["errorNote"] = ""
 			summaryNotes.Set("errorFound", 0)
 			grabStatus = ReadLog(vToMap["logconf"], false, vToMap["nameid"].(string), "", "", false, summaryNotes)
 		}
@@ -320,7 +332,6 @@ func (g *GrabModule) CheckStat(datas []interface{}) interface{} {
 
 func ReadLog(logConf interface{}, isRun bool, name string, lastDate string, nextDate string, lastGrab bool, summaryNotes toolkit.M) interface{} {
 	var grabsStatus = map[string]interface{}{}
-	// var grabStat bool
 
 	grabsStatus["note"] = summaryNotes
 	grabsStatus["lastDate"] = lastDate
@@ -328,53 +339,5 @@ func ReadLog(logConf interface{}, isRun bool, name string, lastDate string, next
 	grabsStatus["grabStat"] = lastGrab
 	grabsStatus["name"] = name
 	grabsStatus["isRun"] = isRun
-	// dateNow := time.Now()
-	// logFile := fmt.Sprintf("%s\\%s-%s", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string), dateNow.Format(logConf.(map[string]interface{})["filepattern"].(string)))
-	// // logFile := fmt.Sprintf("%s\\%s", logConf.(map[string]interface{})["logpath"].(string), logConf.(map[string]interface{})["filename"].(string))
-
-	// openLogFile, e := os.Open(logFile)
-	// if e != nil {
-	// 	if b := strings.Contains(e.Error(), "The system cannot find the file specified"); b {
-	// 		grabsStatus["grabStat"] = b
-	// 	} else {
-	// 		grabsStatus["grabStat"] = false
-	// 	}
-	// 	grabsStatus["error"] = e.Error()
-	// 	grabsStatus["name"] = name
-
-	// 	fmt.Printf("grabsStatus error:%v\n", grabsStatus)
-	// 	return grabsStatus
-	// }
-	// defer openLogFile.Close()
-
-	// scanner := bufio.NewScanner(openLogFile)
-	// i := 0
-	// var lastLine string
-	// for scanner.Scan() {
-	// 	i++
-	// 	lastLine = scanner.Text()
-
-	// 	lastNum := i - 1
-	// 	if i == lastNum {
-	// 		break
-	// 	}
-	// }
-
-	// if lastLine != "" {
-	// 	splits := strings.Split(lastLine, " ")
-	// 	if splits[0] == "INFO" {
-	// 		grabStat = true
-	// 	} else if splits[0] == "ERROR" {
-	// 		grabStat = false
-	// 	}
-
-	// 	grabsStatus["note"] = strings.Join(splits[4:], " ")
-	// 	grabsStatus["dateTimeNow"] = lastDate
-	// 	// grabsStatus["timeNow"] = splits[2]
-	// 	grabsStatus["grabStat"] = grabStat
-	// }
-	// grabsStatus["name"] = name
-	// grabsStatus["isRun"] = isRun
-	// fmt.Printf("grabsStatus:%v\n", grabsStatus)
 	return grabsStatus
 }

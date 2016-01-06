@@ -316,8 +316,8 @@ Config.History = function(nameid){
                 dataBound: onHistoryDataBound,
                 pageable: {pageSizes: true,buttonCount: 5},
                 columns: [
-                {field: "id",title: "ID", width: 50}, 
-                {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), width: 50},
+                // {field: "id",title: "ID", width: 50}, 
+                {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), width: 60},
                 {field: "datasettingname",title: "DATA NAME"}, 
                 {field: "grabdate",title: "START"},
                 {field: "rowgrabbed",title: "GRAB COUNT"},
