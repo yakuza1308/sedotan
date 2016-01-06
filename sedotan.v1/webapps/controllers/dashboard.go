@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"fmt"
+	// "fmt"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/json"
 	"github.com/eaciit/knot/knot.v1"
@@ -155,6 +155,25 @@ func (a *DashboardController) Gethistory(k *knot.WebContext) interface{} {
 			return nil
 		}
 	}
-	fmt.Printf("hs:%v\n", hs)
+
 	return hs
+}
+
+func (a *DashboardController) Getlog(k *knot.WebContext) interface{} {
+	k.Config.OutputType = knot.OutputJson
+	t := struct {
+		Date   string
+		NameId string
+	}{}
+	e := k.GetPayload(&t)
+	if e != nil {
+		return e.Error()
+	}
+
+	ds, _ := Getquery(t.NameId)
+
+	hs := modules.NewHistory(t.NameId)
+	logs := hs.GetLog(ds, t.Date)
+
+	return logs
 }
