@@ -1,0 +1,847 @@
+<style>
+#iframeTemplate{
+	display:none;
+}
+#sourceCodeWrapper{
+	overflow-y:scroll;
+	height: 250px;
+}
+#sourceCodeWrapper > div:hover{
+	background: #FFF7EA;
+    padding-left: 0px;
+    border: 1px solid #EF8F00;
+    cursor: pointer;
+}
+#sourceCodeWrapper >div.active{
+	background: #EAFFF9;
+    padding-left: 0px;
+    border: 1px solid #00C3EF;
+    cursor: pointer;
+}
+iframe{
+	border:1px solid #DDD;
+}
+#sidebar > .row{
+	margin-bottom: 5px;
+}
+#sidebar > .row > .col-md-5{
+	line-height: 25px;
+}
+
+#sidebar > .sidebar-section > .row{
+	margin-bottom: 5px;
+}
+#sidebar > .sidebar-section > .row > .col-md-5{
+	line-height: 25px;
+}
+
+.data-setting > .row{
+	margin-bottom: 5px;
+}
+.data-setting > .row > .col-md-5{
+	line-height: 25px;
+}
+.data-preview{
+	border-bottom:3px solid #0672A0;
+	margin-bottom: 10px;
+}
+</style>
+<h1>Configuration</h1><br/>
+<script type="text/javascript">
+	model.PageId("Configuration");
+	function ColumnBase(){
+		var self = this;
+		self.index = ko.observable(0);
+		self.alias = ko.observable("");
+		self.selector = ko.observable("");
+		return self;
+	}
+	function BaseData(){
+		var self = this;
+		self.name = ko.observable("");
+		self.rowselector = ko.observable("");
+		self.columnsettings = ko.observableArray([]);
+		self.desttype = ko.observable("csv");
+		self.connectioninfo = {
+			host:ko.observable(""),
+			database:ko.observable(""),
+			collection:ko.observable(""),
+			settings:{
+				useheader:ko.observable(true),
+				delimiter:ko.observable(","),
+			},
+		};
+		return self;
+	}
+	var Config = {
+		Data:ko.observableArray([]),
+		isFormActive:ko.observable(false),
+		isURLSet:ko.observable(false),
+		url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
+		// url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
+		// url:ko.observable(""),
+		nameid:ko.observable(""),
+		calltype:ko.observable("GET"),
+		parameter:ko.observable(""),
+		grabconf:{
+			data:ko.observable("")
+		},
+		sourcetype:ko.observable("SourceType_Http"),
+		intervaltype:ko.observable("seconds"),
+		grabinterval:ko.observable(0),
+		timeoutinterval:ko.observable(0),
+		datasettings:ko.observableArray([]),
+		logconf:{
+			logpath:ko.observable(""),
+			filename: ko.observable(""),
+			filepattern: "20060102"
+		},
+
+		// Data Source
+		calltypeList:ko.observableArray(["GET","POST"]),
+		intervalList:ko.observableArray(["seconds","minutes","hours"]),
+		sourcetypeList:ko.observableArray(["SourceType_Http"]),
+		desttypeList:ko.observableArray(["csv","mongo"]),
+		useheaderList:ko.observableArray([true,false]),
+		// Process
+		ProcessNumber:ko.observable(1),
+		ProcessTotal:ko.observable(3),
+
+		// Data Setting
+		ActiveData:ko.observable(0),
+		isEdit:ko.observable(false),
+		isSelecting:ko.observable(false),
+		selectingWhat:ko.observable(""),
+		selectedItem:ko.observable("")
+	}
+	var URLSource = "";
+</script>
+
+<div  data-bind="with:Config">
+	<div class="row" data-bind="visible:!isFormActive()">
+		<div class="col-md-12 align-right">
+			<button class="btn btn-info" data-bind="click:AddNew">Add New</button>
+		</div>
+		<br/>
+		<div class="col-md-12">
+			<div id="DataList"></div>
+		</div>
+	</div>
+	<div class="row"  data-bind="visible:isFormActive()">
+		<div class="col-md-7">
+			<div class="input-group">
+			  <span class="input-group-addon">Input URL</span>
+			  <input type="text" class="form-control" data-bind="value:url" id="inputURL">
+			</div>
+		</div>
+		<div class="col-md-2">
+			<div class="input-group">
+			  <span class="input-group-addon">Call Type</span>
+			  <input type="text" class="form-control" data-bind="kendoDropDownList:{value:calltype,data:calltypeList}" id="inputCallType" />
+			</div>
+		</div>
+		<div class="col-md-3">
+			<button class="btn btn-info" data-bind="click:GetURL,visible:!isEdit()">Get URL</button>
+			<button class="btn btn-danger" data-bind="click:Reset,visible:!isEdit()">Reset</button>
+			<button class="btn btn-primary" data-bind="click:Cancel">Cancel</button>
+		</div>
+	</div>
+	<br data-bind="visible:isFormActive()"/>
+	<div class="row" data-bind="visible:isFormActive()">
+		<div class="col-md-12" data-bind="visible:calltype()=='POST'">
+			<div class="input-group">
+			  <span class="input-group-addon">Parameter</span>
+			  <input type="text" class="form-control" data-bind="value:parameter" id="inputURL">
+			</div>
+		</div>
+	</div>
+	<br/>
+	<div class="row"  data-bind="visible:isFormActive()">
+		<div class="col-md-3" id="sidebar" data-bind="visible:isURLSet()">
+			<!-- Sidebar -->
+			
+			<div class="row">
+				<div class="col-md-12 align-center">
+					<h3 data-bind="visible:ProcessNumber()==1">Grabber - Set Up</h3>
+					<h3 data-bind="visible:ProcessNumber()==2">Grabber - Set Up &raquo; Data Setting</h3>
+					<h3 data-bind="visible:ProcessNumber()==3">Grabber - Set Up &raquo; Preview</h3>
+				</div>
+			</div>
+			<div class="row" data-bind="visible:isSelecting()">
+				<div class="col-md-12 align-right">
+					<button class="btn btn-xs btn-success" data-bind="click:CompleteSelection"><span class="fa fa-check-circle"></span> Done</button>&nbsp;
+					<button class="btn btn-xs btn-warning" data-bind="click:CancelSelection"><span class="fa fa-mail-reply-all"></span> Cancel</button>
+				</div>
+				<div class="col-md-12">&nbsp;</div>
+				<div class="col-md-12">Selected Item :</div>
+				<div class="col-md-12">
+					<pre><code class="language-markup" data-bind="text:selectedItem"  style="overflow-wrap: break-word;"></code></pre>
+				</div>
+				<hr/>
+				<div class="col-md-12">
+					<div id="sourceCodeWrapper">
+					</div>
+				</div>
+			</div>
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==1">
+				<div class="row">
+					<label class="col-md-5">
+						Name ID
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:nameid" class="form-control"/>
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Source Type
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="kendoDropDownList:{value:sourcetype,data:sourcetypeList}" />
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Interval Type
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="kendoDropDownList:{value:intervaltype,data:intervalList}" />
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Grab Interval
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:grabinterval" class="form-control"/>
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Timeout Interval
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:timeoutinterval" class="form-control"/>
+					</div>
+				</div>
+			</div>
+
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==2&&!isSelecting()">
+				<div class="row">
+					<label class="col-md-12">
+						List :
+					</label>
+				</div>
+				<div class="row">
+					<div class="col-md-12">
+						<table width="100%" class="table table-bordered">
+							<thead>
+								<tr>
+									<th width="20%">Name</th>
+									<th>Row Selector</th>
+									<th width="75px;">&nbsp;</th>
+								</tr>
+							</thead>
+							<tbody data-bind="foreach:datasettings">
+								<tr>
+									<td data-bind="text:name()==''?'-':name"></td>
+									<td data-bind="text:rowselector()==''?'-':rowselector"></td>
+									<td class="align-center">
+										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.ActiveData('+$index()+')'}">
+											<span class="fa fa-edit"></span>
+										</button>
+										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.RemoveRowData('+$index()+')'}">
+											<span class="fa fa-trash"></span>
+										</button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<hr/>
+				</div>
+
+				<div class="row" data-bind="foreach:datasettings">
+					<div class="col-md-12 data-setting" data-bind="visible:$index()==$parent.ActiveData()">
+						<div class="row">
+							<label class="col-md-5">
+								Name
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="value:name" class="form-control"/>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Row Selector
+							</label>
+							<div class="col-md-7">
+								<div class="input-group">
+									<input type="text" data-bind="value:rowselector" class="form-control"/>
+									<span class="input-group-btn">
+										<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
+											<span class="fa fa-search"></span>
+										</button>
+									</span>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-8">
+								<b>Column Setting : </b>
+							</div>
+							<div class="col-md-4 align-right">
+								<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.AddColumn('+$index()+')'}">
+									<span class="fa fa-plus"></span> add column
+								</button>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<table width="100%" class="table">
+									<tr>
+										<th width="40%">Alias</th>
+										<th>Selector</th>
+									</tr>
+									<tbody data-bind="foreach:columnsettings">
+										<tr>
+											<td>
+												<input type="text" class="form-control" data-bind="value:alias"/>
+											</td>
+											<td>
+												<div class="input-group">
+													<input type="text" class="form-control" data-bind="value:selector"/>
+											      	<span class="input-group-btn">
+											        	<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetColumnSettings('+$index()+')'}">
+															<span class="fa fa-search"></span>
+														</button>
+											      	</span>
+											    </div>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Destination Type
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:desttype,data:$parent.desttypeList}" />
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Host
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control" data-bind="value:connectioninfo.host"/>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongodb'">
+							<label class="col-md-5">
+								Database
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control" data-bind="value:connectioninfo.database"/>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongodb'">
+							<label class="col-md-5">
+								Collection
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control" data-bind="value:connectioninfo.collection"/>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Use Header
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:connectioninfo.settings.useheader,data:$parent.useheaderList}" />
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Delimiter
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control" data-bind="value:connectioninfo.settings.delimiter"/>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==3">
+				<div class="row" data-bind="foreach:datasettings">
+					<div class="col-md-12 data-setting data-preview">
+						<div class="row">
+							<label class="col-md-5">Name</label>
+							<div class="col-md-7" data-bind="text:name"></div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">Row Selector</label>
+							<div class="col-md-7" data-bind="text:rowselector" ></div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<b>Column Setting : </b>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<table width="100%" class="table">
+									<tr>
+										<th width="40%">Alias</th>
+										<th>Selector</th>
+									</tr>
+									<tbody data-bind="foreach:columnsettings">
+										<tr>
+											<td data-bind="text:alias"></td>
+											<td data-bind="text:selector"></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Destination Type
+							</label>
+							<div class="col-md-7" data-bind="text:desttype"></div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Host
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.host"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongodb'">
+							<label class="col-md-5">
+								Database
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.database"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongodb'">
+							<label class="col-md-5">
+								Collection
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.collection"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Use Header
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.settings.useheader"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Delimiter
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.settings.delimiter"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="row" data-bind="visible:!Config.isSelecting()">
+				<div class="col-md-12 align-right">
+					<button class="btn btn-primary" data-bind="visible:ProcessNumber()==2" onclick="Config.AddData();">Add More Data</button>
+
+					<button class="btn btn-default" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(1)">Back</button>
+					<button class="btn btn-default" data-bind="visible:ProcessNumber()==3" onclick="Config.ProcessNumber(2)">Back</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==1,attr:{disabled:!Config.isURLSet()}" onclick="Config.ProcessNumber(2)">Next</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(3)">Next</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==3,click:Save">Save</button>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-9" data-bind="attr:{'class':isURLSet()?'col-md-9':'col-md-12'}">
+			<div id="iframeTemplate">
+				<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
+				<div style="font-family:'Open Sans';">
+					<div class="align-center" style="text-align:center;font-size: 20px;color: #373e4a;">Result Preview</div>
+				</div>
+			</div>
+			<iframe name="URLPreview" id="URLPreview" width="100%" height="450px" frameborder="0"></iframe>
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+	Config.RemoveRowData = function(index){
+		var d = Config.datasettings()[index];
+		Config.datasettings.remove(d);
+	}
+	Config.GetColumnSettings = function(index){
+		Config.isSelecting(true);
+		Config.selectingWhat("columnsettings"+index);
+	}
+	Config.GetRowSelector = function(index){
+		Config.isSelecting(true);
+		Config.selectingWhat("rowselector"+index);
+	}
+	Config.CompleteSelection = function(){
+		var selectedItem = Config.selectedItem();
+		var selectingWhat = Config.selectingWhat();
+		$("*.selector").attr("class","selector");
+		
+		var selectingIndex = 0;
+		if(selectingWhat.indexOf("rowselector") == 0){
+			selectingIndex = parseInt(selectingWhat.substr(11));
+			Config.datasettings()[selectingIndex].rowselector(selectedItem)
+		}else{
+			selectingIndex = parseInt(selectingWhat.substr(14));
+			Config.datasettings()[Config.ActiveData()].columnsettings()[0].selector(selectedItem);
+		}
+		Config.isSelecting(false);
+		Config.selectingWhat("");
+	}
+	Config.Cancel = function(){
+		Config.url("");
+		Config.parameter("");
+		Config.calltype("GET");
+		Config.isURLSet(false);
+		Config.isFormActive(false);
+	}
+	Config.CancelSelection = function(){
+		Config.selectingWhat("");	
+		Config.isSelecting(false);
+	}
+	Config.AddNew = function(){
+		$("#inputURL").attr("readonly",false);
+		$("#inputCallType").data("kendoDropDownList").readonly(false);
+		Config.isFormActive(true);
+		Config.isEdit(false);
+		var doc = document.getElementById('URLPreview').contentWindow.document;
+		doc.open();
+		doc.write($("#iframeTemplate").html());
+		doc.close();
+	}
+	Config.AddData = function(){
+		Config.datasettings.push(new BaseData());
+		Config.ActiveData(Config.datasettings().length-1);
+		Config.AddColumn(Config.datasettings().length-1);
+	}
+	Config.AddColumn = function(index){
+		Config.datasettings()[index].columnsettings.push(new ColumnBase());
+	}
+
+	Config.Reset = function(){
+		Config.url("");
+		Config.parameter("");
+		Config.calltype("GET");
+		Config.isURLSet(false);
+		var doc = document.getElementById('URLPreview').contentWindow.document;
+		doc.open();
+		doc.write($("#iframeTemplate").html());
+		doc.close();
+	}
+	Config.GetURL = function(){
+		Config.nameid("");
+		Config.ProcessNumber(1);
+		Config.sourcetype("SourceType_Http");
+		Config.intervaltype("seconds");
+		Config.grabinterval(0);
+		Config.timeoutinterval(0);
+		Config.datasettings([]);
+		Config.logconf.logpath("");
+		Config.logconf.filename("");
+
+		if(Config.url().trim()==""){
+			alert("Url cannot be empty.");
+			return false;
+		}
+		Config.isURLSet(true);
+		Config.datasettings([]);
+		Config.datasettings.push(new BaseData());
+		Config.AddColumn(0);
+		var url = "{{BaseUrl}}configuration/geturl";
+		var parm = {
+			URL:Config.url(),
+			Method:Config.calltype(),
+			Parameter:Config.calltype()=="GET"?null:JSON.parse(Config.parameter())
+		};
+		ajaxPost(url,parm,function(res){
+			var BaseUrl = Config.url().substr(0,Config.url().substr(Config.url().indexOf("www")).indexOf("/")+Config.url().indexOf("www")+1);
+
+			// var findcss = new RegExp("href=\"/", 'g');
+			// var findjs = new RegExp("src=\"/", 'g');
+			// res = res.replace(findcss,"href=\""+BaseUrl);
+			// res = res.replace(findjs,"src=\""+BaseUrl);
+			var find = new RegExp("=\"/", 'g');
+			res = res.replace(find,"=\""+BaseUrl);
+			
+
+			var doc = document.getElementById('URLPreview').contentWindow.document;
+			doc.open();
+			doc.write(res);
+			doc.close();
+			var startofbody = res.indexOf("<body");
+			var endofbody = res.indexOf("</body");
+			var body = res.substr(startofbody,endofbody-startofbody);
+			startofbody = body.indexOf(">");
+			body = body.substr(startofbody+1);
+			// console.log()
+			URLSource = $.parseHTML(body)
+			$("#sourceCodeWrapper").html("");
+			$(URLSource).each(function(i,e){
+			 if($(this).html()!==undefined){
+			 	linenumber = Config.GetElement($(this),0,0,0,"body");
+			 }
+			})
+			// $("#sourceCodeWrapper").text(body);
+			// $("#cssCodeWrapper").html("p { color: red }");
+	        // alert("Configuration succesfully saved");
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Config.GetElement = function(obj,parent,linenumber,index,selector){
+		linenumber +=1;
+		var classes = obj.attr("class");
+		var id = obj.attr("id");
+		if( id !== undefined && id !== "" ){
+			id = "id='"+id+"'";
+		}else{
+			id = "";
+		}
+		if( classes !== undefined && classes !== "" ){
+			classes = "class='"+classes+"'";
+		}else{
+			classes = "";
+		}
+		var nodeName = obj.get()[0].nodeName.toLowerCase();
+		if(id!==""){
+			selector+=">"+nodeName+"#"+obj.attr("id").split(" ")[0]+":eq("+index+")";
+		}else if(classes!==""){
+			selector+=">"+nodeName+"."+obj.attr("class").split(" ")[0]+":eq("+index+")";
+		}else{
+			selector+=">"+nodeName+":eq("+index+")";
+		}
+		
+		var str = "<"+nodeName+" "+id+" "+classes+">..";
+		var style = "style='padding-left:"+parseFloat(parent)*10+"px'";
+		$("#sourceCodeWrapper").append("<div id='scw"+linenumber+"' "+style+" class='selector'></div>");
+		$("#scw"+linenumber).text(str);
+		$("#scw"+linenumber).attr("onclick","Config.GetCurrentSelector('"+"scw"+linenumber+"','"+selector+"')");
+		var idx = 0;
+		var prevNode = "";
+		obj.children().each(function(i,e){
+			var node = $(this).get()[0].nodeName.toLowerCase();
+			if (prevNode == node){
+				idx=0;
+			}
+			if($(this).html()!==undefined && node!== "link" && node !=="script"){
+				linenumber = Config.GetElement($(this),parseFloat(parent+1),linenumber,idx,selector);
+				idx++;
+			}
+			prevNode = node;
+		})
+		return linenumber;
+	}
+
+	Config.GetCurrentSelector = function(id,selector){
+		$("*.selector").attr("class","selector");
+		$("#"+id).attr("class","selector active");
+		var existingStyle = $(Config.selectedItem(), $("#URLPreview").contents()).attr("style");
+		
+		if(existingStyle!==undefined){
+			existingStyle = existingStyle.replace(";border:5px solid #FF9900","");
+			existingStyle = existingStyle.replace("border:5px solid #FF9900","");
+			$(Config.selectedItem(), $("#URLPreview").contents()).attr("style",existingStyle);
+		}
+		
+		console.log(selector);
+		$("body", $("#URLPreview").contents()).scrollTop($(selector, $("#URLPreview").contents()).offset().top)
+		
+		Config.selectedItem(selector);
+		existingStyle = "";
+		existingStyle = $(selector, $("#URLPreview").contents()).attr("style");
+		if(existingStyle!==undefined){
+			if(existingStyle[existingStyle.length-1]==";"){
+				existingStyle += existingStyle+"border:5px solid #FF9900"	
+			}else{
+				existingStyle += existingStyle+";border:5px solid #FF9900"
+			}
+			
+		}else{
+			existingStyle = "border:5px solid #FF9900"
+		}
+		$(selector, $("#URLPreview").contents()).attr("style",existingStyle);
+	}
+
+	Config.Save = function(){
+		Config.grabinterval(parseFloat(Config.grabinterval()));
+		Config.timeoutinterval(parseFloat(Config.timeoutinterval()));
+		var jsondata = ko.mapping.toJSON(Config);
+		var data = ko.mapping.fromJSON(jsondata);
+		delete data["Data"]
+		delete data["isFormActive"]
+		delete data["isURLSet"]
+		delete data["calltypeList"]
+		delete data["intervalList"]
+		delete data["sourcetypeList"]
+		delete data["desttypeList"]
+		delete data["useheaderList"]
+
+		delete data["ProcessNumber"]
+		delete data["ProcessTotal"]
+		delete data["ActiveData"]
+		delete data["isEdit"]
+		delete data["isSelecting"]
+		delete data["selectingWhat"]
+		delete data["selectedItem"]
+		
+		if(data.calltype()=="GET"){
+			delete data["parameter"]
+			delete data["grabconf"]
+		}else{
+			data.grabconf.data = JSON.parse(data.parameter());
+			delete data["parameter"]
+		}
+		
+		for(var i in data.datasettings()){
+			switch(data.datasettings()[i].desttype()){
+				case "csv":
+					delete data.datasettings()[i].connectioninfo["database"]
+					delete data.datasettings()[i].connectioninfo["collection"]
+					break;
+				case "mongodb":
+					delete data.datasettings()[i].connectioninfo["settings"]
+					break;
+				default:
+					break;
+			}
+		}
+
+		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
+		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
+		data.logconf.logpath("data/logs/"+filename+"/");
+		data.logconf.filename("LOG-"+filename+"-%s");
+		var url = "{{BaseUrl}}configuration/save";
+		var parm = {
+			Data:ko.mapping.toJSON(data),
+			IsEdit:Config.isEdit(),
+			NameID:data.nameid
+		};
+		ajaxPost(url,parm,function(res){
+	        alert("Configuration succesfully saved");
+	        location.reload()
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+
+	Config.GetConfiguration = function(){
+		var url = "{{BaseUrl}}configuration/getdata";
+		var parm = {};
+		ajaxPost(url,parm,function(res){
+			Config.Data(res);
+			Config.GenDataList(res);
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Config.Edit = function(nameid){
+		$("#inputURL").attr("readonly",true);
+		$("#inputCallType").data("kendoDropDownList").readonly(true);
+		Config.isEdit(true);
+		var dataSource = Config.Data();
+		var data = Enumerable.From(dataSource).Where(function(x){return x.nameid == nameid}).FirstOrDefault()
+		Config.isFormActive(true);
+		Config.url(data.url);
+		if(data.calltype=="POST"){
+			Config.parameter(JSON.stringify(data.grabconf.data));
+		}
+		Config.isURLSet(true);
+		Config.nameid(data.nameid);
+		Config.calltype(data.calltype);
+		Config.sourcetype(data.sourcetype);
+		Config.intervaltype(data.intervaltype);
+		Config.grabinterval(data.grabinterval);
+		Config.timeoutinterval(data.timeoutinterval);
+		var datasettings = data.datasettings;
+		for(var i in datasettings){
+			Config.datasettings.push(new BaseData());
+			Config.datasettings()[i].name(datasettings[i].name);
+			Config.datasettings()[i].desttype(datasettings[i].desttype);
+			Config.datasettings()[i].rowselector(datasettings[i].rowselector);
+			Config.datasettings()[i].connectioninfo.host(datasettings[i].connectioninfo.host);
+			switch(datasettings[i].desttype){
+				case "csv":
+					Config.datasettings()[i].connectioninfo.settings.useheader(datasettings[i].connectioninfo.settings.useheader);
+					Config.datasettings()[i].connectioninfo.settings.delimiter(datasettings[i].connectioninfo.settings.delimiter);
+				break;
+				case "mongodb":
+					Config.datasettings()[i].connectioninfo.collection(datasettings[i].connectioninfo.collection);
+					Config.datasettings()[i].connectioninfo.database(datasettings[i].connectioninfo.database);
+				break;
+				default:break;
+			}
+			var columnsettings = datasettings[i].columnsettings;
+			for(var c in columnsettings){
+				Config.datasettings()[i].columnsettings.push(new ColumnBase())
+				Config.datasettings()[i].columnsettings()[c].alias(columnsettings[c].alias);
+				Config.datasettings()[i].columnsettings()[c].selector(columnsettings[c].selector);
+			}
+
+		}
+	}
+
+	
+
+	Config.Delete = function(nameid){
+		if(!confirm("Are you sure?")){
+			return false;
+		}
+
+		var url = "{{BaseUrl}}configuration/delete";
+		var parm = {
+			NameID:nameid
+		};
+		ajaxPost(url,parm,function(res){
+	        alert("Data has been deleted");
+	        location.reload()
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Config.GenDataList = function(dataSource){
+		$("#DataList").html("");
+		$("#DataList").kendoGrid({
+			dataSource: {
+			  data: dataSource,
+			  pageSize: 10
+			},
+			scrollable: true,
+			sortable: true,
+			filterable: true,
+			columns: [
+			  { field: "nameid", title: "Name ID"},
+			  { field: "calltype", title: "Call Type",width:100},
+			  { field: "sourcetype", title: "Source Type",width:150},
+			  { field: "intervaltype", title: "Interval Type",width:120},
+			  { field: "grabinterval", title: "Grab Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
+			  { field: "timeoutinterval", title: "Timeout Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
+			  { field: "datasettings", title: "Data Setting",template:"#:datasettings.length# Data"},
+			  { field: "nameid", title: "&nbsp;",filterable:false,sortable:false,width:100,attributes:{ class:"align-center" },
+			  	template:"<button class='btn btn-default' onclick='Config.Edit(\"#:nameid#\")'><span class='fa fa-edit' ></span></button>"+
+			  	"&nbsp;"+
+			  	"<button class='btn btn-default' onclick='Config.Delete(\"#:nameid#\")'><span class='fa fa-trash' ></span></button>"
+			  },
+
+			]
+		})
+	}
+
+	$(document).ready(function(){
+		Config.GetConfiguration();
+	})
+</script>

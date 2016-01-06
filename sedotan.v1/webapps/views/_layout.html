@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<title>SEDOTAN - EACIIT</title>
+
+	<link rel="shortcut icon" href="/static/img/favicon.ico" >
+
+	<script type="text/javascript" src="/static/kendoui/js/jquery.min.js"></script>
+	<script type="text/javascript" src="/static/kendoui/js/kendo.all.min.js"></script>
+	<script type="text/javascript" src="/static/bootstrap/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="/static/js/knockout.min.js"></script>
+	<script type="text/javascript" src="/static/js/ko-mapping.js"></script>
+	<script type="text/javascript" src="/static/js/knockout-kendo.min.js"></script>
+	<script type="text/javascript" src="/static/js/ec-common.js"></script>
+	<script type="text/javascript" src="/static/js/moment.min.js"></script>
+	<script type="text/javascript" src="/static/js/linq.js"></script>
+	<script type="text/javascript" src="/static/js/custom.js"></script>
+	<script type="text/javascript" src="/static/js/prism.js"></script>
+	
+
+	<script src="/static/js/jszip.min.js"></script>
+	<script src="/static/js/underscore.min.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
+	
+	<link href="/static/kendoui/styles/kendo.material.min.css" type="text/css" rel="stylesheet" />
+	<link href="/static/kendoui/styles/kendo.common-bootstrap.min.css" type="text/css" rel="stylesheet" />
+	<link href="/static/kendoui/styles/kendo.dataviz.min.css" type="text/css" rel="stylesheet" />
+	<link href="/static/kendoui/styles/kendo.dataviz.bootstrap.min.css" type="text/css" rel="stylesheet" />
+	
+	<link rel="stylesheet" type="text/css" href="/static/theme/neon/bootstrap-green.css">
+	<link rel="stylesheet" type="text/css" href="/static/font-awesome/css/font-awesome.css">
+	<link rel="stylesheet" type="text/css" href="/static/theme/neon/core.css">
+	<link rel="stylesheet" type="text/css" href="/static/theme/neon/theme.css">
+	<link rel="stylesheet" type="text/css" href="/static/theme/neon/form.css">
+	<link rel="stylesheet" type="text/css" href="/static/css/default.css">
+	<link rel="stylesheet" type="text/css" href="/static/css/prism.css">
+
+	<script type="text/javascript">
+		var model = {
+			Processing : false,
+			PageId:ko.observable("")
+		};
+	</script>
+
+	        <style>
+            .menu-header{
+                height:30px;
+                background-color:#333;
+            }
+
+            .nav-bar-header li {
+                float:left;
+            }
+
+            .nav-bar-header li a {
+                font-size: 12px;
+                margin: 0px;
+                padding: 5px;
+                background-color: #000;
+            }
+
+            .nav-bar-header li.selected a {
+                background-color: #D33;
+            }
+                
+            .nav-bar-header li a:hover {
+                font-size: 12px;
+                margin: 0px;
+                padding: 5px; 
+                background-color: #D33;
+            }
+                
+            .form-group label {
+                text-align:right;
+                padding-right:10px;
+            }
+
+            .form-group input{
+                border: solid 1px #ccc;
+                padding: 2px;
+            }
+
+            .form-group input[type='number'] {
+                text-align:right;
+            }
+
+            .header-bg {
+	        background: url('/static/img/header-bg.jpg') no-repeat center top;
+	        /*background: linear-gradient(to bottom,  rgba(0,0,0,0.65) 80%,rgba(0,0,0,0.65) 82%,rgba(0,0,0,0.65) 84%,rgba(0,0,0,0) 92%); */
+	    	}
+	    	.rad{
+	    		border-radius: 9px;
+	    	}
+	    	.pad4{
+	    		padding-top: 0.4%;
+	    	}
+        </style>
+
+
+        <script id="navbarTemplate" type="text/html">
+            	<li data-bind="if: Submenus().length==0,attr:{'class':Id()==model.PageId()?'active':''}">
+                	<a data-bind="text: Title, attr:{href:Url}"></a>
+            	</li>
+
+	            <li data-bind="if: Submenus().length>0" class="dropdown">
+	                <a data-bind="html: Title() + '&nbsp;&nbsp;<i class=\'fa fa-caret-down\'></i>'" style="cursor:pointer" class="dropdown-toggle" data-toggle="dropdown"></a>
+	                <ul class="dropdown-menu" role="menu" data-bind="template:{name:'navbarSubTemplate', foreach:Submenus}"></ul>
+	            </li>
+        </script>
+
+        <script id="navbarSubTemplate" type="text/html">
+	            <li data-bind="if: Submenus().length==0">
+	                <a data-bind="text: Title, attr:{href:Url}"></a>
+	            </li>
+
+	            <li data-bind="if: Submenus().length>0" class="dropdown-submenu">
+	                <a data-bind="html: Title() + '&nbsp;&nbsp;<i class=\'fa fa-caret-down\'></i>'" style="cursor:pointer" class="dropdown-toggle" data-toggle="dropdown"></a>
+	                <ul class="dropdown-menu" role="menu" data-bind="template:{name:'navbarSubTemplate', foreach:Submenus}"></ul>
+	            </li>
+
+        </script>
+</head>
+<body>
+
+<div id="header">
+	 <div id="top-nav" class="navbar _navbar-inverse navbar-static-top header-bg">
+	    <div class="container-fluid">
+	        <div class="navbar-header">
+	            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+	                <span class="icon-bar"></span>
+	                <span class="icon-bar"></span>
+	                <span class="icon-bar"></span>
+	            </button>
+	            <a class="navbar-brand" href="/dashboard/default"><img class="rad" src="/static/img/login-logo.png" height="50"></a>
+	        </div>
+<!-- 	        <div class="navbar-collapse collapse">
+	            <ul class="nav navbar-nav navbar-right prof">
+	                <li class="dropdown">
+	                    <a class="dropdown-toggle" role="button" data-toggle="dropdown" href="#"><i class="glyphicon glyphicon-user"></i> Eaciit Admin <span class="caret"></span></a>
+	                    <ul id="g-account-menu" class="dropdown-menu" role="menu">
+	                        <li><a href="/p/menu/index">Menu Management</a></li>
+	                    </ul>
+	                </li>
+	                <li><a href="/account/logout" onclick="return logout()"><i class="fa fa-sign-out"></i> Logout</a></li>
+	            </ul>
+	        </div> -->
+	    </div>
+	</div>
+	<nav class="nav navbar-inverse" role="navigation">
+		<div class="navbar-header">
+		    <ul class="nav navbar-nav" data-bind="template:{name:'navbarTemplate', foreach:MainMenus}"></ul>
+		</div>
+	</nav>
+</div>
+
+<script type="text/javascript">
+
+function getUTCDate(strdate){
+    var d = moment.utc(strdate);
+    return new Date(d.year(), d.month(), d.date(), d.hour(), d.minutes(), d.second())
+}
+function logout(){
+	if(confirm("Are you sure you want to logout from this application ?")){
+		return true;
+	}
+	return false;
+}
+
+function menuItem(t, u, items){
+	return {
+		text: t,
+		url: u,
+		items: items
+	};
+}
+
+function appMenu(){
+	if($("#appmenu").data("kendoMenu")==undefined){
+		$("#appmenu").kendoMenu({
+			dataSource:[
+
+			]
+		});
+	}
+
+	return $("#appmenu").data("kendoMenu");
+}
+
+function menutItemGetByIndex(target) {
+    menu = appMenu();
+	itemIndexes = target.split(/[.,]/);
+    item = menu.element;
+
+    if (itemIndexes[0] !== "") {
+        for (var i = 0, len = itemIndexes.length; i < len; i++) {
+            item = item.children("li").eq(itemIndexes[i]);
+            if (i < len-1) {
+                item = item.find("ul:first");
+            }
+        }
+    }
+    return item;
+}
+
+function menuItemGetByText(target) {
+    menu = appMenu();
+	itemIndexes = target.split(/[.,]/);
+    item = menu.element;
+
+    found=false;
+    if (itemIndexes[0] !== "") {
+        for (var i = 0, len = itemIndexes.length; i < len; i++) {
+            found = false;
+            childrens = item.children("li");
+            for(var ic=0;ic<childrens.length;ic++){
+            	if($($(childrens[ic]).children("span.k-link").eq(0)).text()==itemIndexes[i]){
+            		found=true;
+            		item=childrens[ic];
+            	}
+            }
+            if(found==false){
+            	i=itemIndexes.length;
+            }
+        }
+    }
+    return item;
+}
+
+function addMenu(p, i){
+	menu = appMenu();
+	menu.append(i,p)
+}
+
+$(document).ready(function(){
+	// menu = appMenu();
+	// menu.append(menuItem("Dashboard", "/"),menu.element);
+	// menu.append(menuItem("Administration"),menu.element);
+	// menu.append(menuItem("Access Right","/p/access/list"),menuItemGetByText("Administration"));
+	// menu.append(menuItem("User Group","/p/group/list"),menuItemGetByText("Administration"));
+	// menu.append(menuItem("User Management","/p/account/list"),menuItemGetByText("Administration"));
+	// menu.append(menuItem("Menu Management","/p/menu/index"),menuItemGetByText("Administration"));	
+	// menu.append(menuItem("Node Manager"),menu.element); 
+	// menu.append(menuItem("List Node","/nodemanager/listnode"),menuItemGetByText("Node Manager"));		
+	// menu.append(menuItem("File Transfer","/nodemanager/transfer"),menuItemGetByText("Node Manager"));				
+	// menu.append(menuItem("Run Command","/nodemanager/runcommand"),menuItemGetByText("Node Manager"));
+	// menu.append(menuItem("Coba","/nodemanager/transfer"),menuItemGetByText("Transfer"));
+})
+
+</script>
+
+<!-- NEW -->
+<script type="text/javascript">
+model.MainMenus = ko.observableArray([]);
+    function MenuItem(Id, Url, Title, Submenus, baseURL) {
+        var obj = {
+            Id: ko.observable(Id),
+            Title: ko.observable(Title == undefined ? Id : Title),
+            Url: ko.observable(baseURL + Url),
+            Submenus: ko.observableArray([])
+        };
+        var arr = Submenus;
+        for(var i in arr){
+            obj.Submenus.push(
+                new MenuItem(
+                    arr[i].Id,
+                    arr[i].Url,
+                    arr[i].Title,
+                    arr[i].SubMenu,
+                    baseURL
+                )
+            );
+        }
+        return obj;
+    };
+
+	function getMainMenu(){
+	    urldt = "/menu/loadmenus";
+	    var baseURL = "";
+
+	    // ajaxPost(urldt,{},function(data){
+	    //     if(data.length == 0){
+	    //         alert("Unable to load access data: " + data.Message);
+	    //         return;
+	    //     }
+
+	    //     var arr = data.MenuData;
+	    //     //console.log(arr)
+     //        for(var i in arr){
+     //            model.MainMenus.push(
+     //                new MenuItem(
+     //                    arr[i].Id,
+     //                    arr[i].Url,
+     //                    arr[i].Title,
+     //                    arr[i].SubMenu,
+     //                    baseURL
+     //                )
+     //            );
+     //        }
+	    // });
+		model.MainMenus.push(
+		    new MenuItem(
+		        "Dashboard",
+		        "/dashboard/default",
+		        "Dashboard",
+		        [],
+		        baseURL
+		    )
+		);
+		model.MainMenus.push(
+		    new MenuItem(
+		        "Configuration",
+		        "/configuration/default",
+		        "Configuration",
+		        [],
+		        baseURL
+		    )
+		);
+		model.MainMenus.push(
+		    new MenuItem(
+		        "ServiceLog",
+		        "/servicelogs/default",
+		        "Service Logs",
+		        [],
+		        baseURL
+		    )
+		);
+	}
+	getMainMenu()
+
+</script>
+
+	<div id="content-container">
+	{{.Content}}
+	</div>
+	<script type="text/javascript">
+
+	ko.applyBindings(model);
+
+	</script>
+
+</body>
+</html>

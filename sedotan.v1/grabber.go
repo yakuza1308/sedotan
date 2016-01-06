@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	gq "github.com/PuerkitoBio/goquery"
+	"github.com/eaciit/cast"
 	"github.com/eaciit/toolkit"
 	"net/http"
 	"strings"
@@ -22,6 +23,7 @@ type Config struct {
 	URL          string
 	CallType     string
 	DataSettings map[string]*DataSetting
+	FormValues   toolkit.M
 
 	AuthType     string
 	AuthUserId   string
@@ -60,8 +62,31 @@ func NewGrabber(url string, calltype string, config *Config) *Grabber {
 	return g
 }
 
-func (c *Config) setData(parm toolkit.M) {
-	c.Data = parm
+func (c *Config) SetFormValues(parm toolkit.M) {
+	c.FormValues = toolkit.M{}.Set("formvalues", parm)
+}
+
+func (g *Grabber) GetConfig() toolkit.M {
+	parm, found := g.Config.FormValues["formvalues"].(toolkit.M)
+	if found {
+		for key, val := range parm {
+			switch {
+			case strings.Contains(val.(string), "time.Now()"):
+				// time.Now(),
+				// Date2String(YYYYMMDD) = time.Now().Date2String(YYYYMMDD)
+				format := ""
+				if strings.Contains(val.(string), "Date2String") {
+					format = strings.Replace(strings.Replace(val.(string), "time.Now().Date2String(", "", -1), ")", "", -1)
+				}
+
+				parm[key] = cast.Date2String(time.Now(), format)
+			}
+		}
+
+		return toolkit.M{}.Set("formvalues", parm)
+	}
+
+	return nil
 }
 
 func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
@@ -76,7 +101,7 @@ func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
 }
 
 func (g *Grabber) Data() interface{} {
-	return g.Config.Data
+	return nil
 }
 
 func (g *Grabber) DataByte() []byte {
@@ -88,11 +113,15 @@ func (g *Grabber) DataByte() []byte {
 }
 
 func (g *Grabber) Grab(parm toolkit.M) error {
-	if parm != nil {
-		g.Config.setData(parm)
+
+	switch g.AuthType {
+	case "session":
+		//Do get session here
+	case "cookie":
+		//Do get cookies here
 	}
 
-	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), nil)
+	r, e := toolkit.HttpCall(g.URL, g.CallType, g.DataByte(), g.GetConfig())
 	errorTxt := ""
 	if e != nil {
 		errorTxt = e.Error()
@@ -146,12 +175,57 @@ func (g *Grabber) ResultFromHtml(dataSettingId string, out interface{}) error {
 			} else {
 				value = sel.Text()
 			}
+			value = strings.TrimSpace(fmt.Sprintf("%s", value))
 			m.Set(columnId, value)
 		}
-		ms = append(ms, m)
+
+		if !(g.Config.DataSettings[dataSettingId].getCondition(m)) {
+			ms = append(ms, m)
+		}
 	}
 	if edecode := toolkit.Unjson(toolkit.Jsonify(ms), out); edecode != nil {
 		return edecode
 	}
 	return nil
+}
+
+func (ds *DataSetting) getCondition(dataCheck toolkit.M) bool {
+	resBool := false
+
+	if len(ds.RowDeleteCond) > 0 {
+		resBool = foundCondition(dataCheck, ds.RowDeleteCond)
+	}
+
+	return resBool
+}
+
+func foundCondition(dataCheck toolkit.M, cond toolkit.M) bool {
+	resBool := true
+
+	for key, val := range cond {
+		if key == "$and" || key == "$or" {
+			for i, sVal := range val.([]interface{}) {
+				rVal := sVal.(map[string]interface{})
+				mVal := toolkit.M{}
+				for rKey, mapVal := range rVal {
+					mVal.Set(rKey, mapVal)
+				}
+
+				xResBool := foundCondition(dataCheck, mVal)
+				if key == "$and" {
+					resBool = resBool && xResBool
+				} else {
+					if i == 0 {
+						resBool = xResBool
+					} else {
+						resBool = resBool || xResBool
+					}
+				}
+			}
+		} else if val != dataCheck.Get(key, "").(string) {
+			resBool = false
+		}
+	}
+
+	return resBool
 }

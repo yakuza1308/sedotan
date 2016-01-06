@@ -1,7 +1,7 @@
 package sedotan
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"github.com/eaciit/toolkit"
 	"testing"
@@ -94,26 +94,20 @@ func TestPost(t *testing.T) {
 	url := "http://www.dce.com.cn/PublicWeb/MainServlet"
 	GrabConfig := Config{}
 
-	str := `{
-		        "data":
-		          {
-		            "Pu00231_Input.trade_date": "20151214",
-		            "Pu00231_Input.variety": "i",
-		            "Pu00231_Input.trade_type": 0,
-		            "Submit": "Go",
-		            "action": "Pu00231_result"
-		          }
-		      }`
-	res := toolkit.M{}
-	json.Unmarshal([]byte(str), &res)
+	dataurl := toolkit.M{}
+	dataurl["Pu00231_Input.trade_date"] = "time.Now().Date2String(YYYYMMDD)"
+	dataurl["Pu00231_Input.variety"] = "i"
+	dataurl["Pu00231_Input.trade_type"] = "0"
+	dataurl["Submit"] = "Go"
+	dataurl["action"] = "Pu00231_result"
 
-	GrabConfig.setData(res)
-
+	GrabConfig.SetFormValues(dataurl)
 	g := NewGrabber(url, "POST", &GrabConfig)
+	// fmt.Println(g.Config.PostData)
 	g.Config.DataSettings = make(map[string]*DataSetting)
 
 	tempDataSetting := DataSetting{}
-	tempDataSetting.RowSelector = "table .table tbody"
+	tempDataSetting.RowSelector = "table .table tbody tr"
 	tempDataSetting.Column(0, &GrabColumn{Alias: "Contract", Selector: "td:nth-child(1)"})
 	tempDataSetting.Column(0, &GrabColumn{Alias: "Open", Selector: "td:nth-child(2)"})
 	tempDataSetting.Column(0, &GrabColumn{Alias: "High", Selector: "td:nth-child(3)"})
@@ -136,5 +130,14 @@ func TestPost(t *testing.T) {
 		fmt.Println(doc)
 	}
 
-	fmt.Println(g.Config.Data)
+	// dataurl := url.Values{}
+	// dataurl.Add("Pu00231_Input.trade_date", "20151214")
+	// dataurl.Add("Pu00231_Input.variety", "i")
+	// dataurl.Add("Pu00231_Input.trade_type", 0)
+	// dataurl.Add("Submit", "Go")
+	// dataurl.Add("action", "Pu00231_result")
+
+	// fmt.Println(dataurl)
+	// fmt.Println("LINE 148", g.Config.PostData)
+	// fmt.Println(g.ResultString())
 }

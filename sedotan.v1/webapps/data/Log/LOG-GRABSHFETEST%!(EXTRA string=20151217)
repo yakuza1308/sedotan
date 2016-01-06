@@ -1,0 +1,6 @@
+INFO 2015/12/17 13:34:36 [goldshfecom] Stop Service
+INFO 2015/12/17 13:34:55 [goldshfecom] Running Service
+INFO 2015/12/17 13:35:55 [goldshfecom] Grab Started http://www.shfe.com.cn/en/products/Gold/
+INFO 2015/12/17 13:35:57 [goldshfecom] Grab Success http://www.shfe.com.cn/en/products/Gold/
+INFO 2015/12/17 13:35:57 [goldshfecom-DATA01] Fetch Data to destination started
+INFO 2015/12/17 13:35:57 [goldshfecom-DATA01] Fetch Data to destination finished

@@ -1,0 +1,28 @@
+package webext
+
+import (
+	"github.com/eaciit/knot/knot.v1"
+	. "github.com/eaciit/sedotan/sedotan.v1/webapps/controllers"
+	"os"
+)
+
+var (
+	wd = func() string {
+		d, _ := os.Getwd()
+		return d + "/../"
+	}()
+)
+
+func init() {
+	app := knot.NewApp("sedotan")
+	app.ViewsPath = wd + "views/"
+	app.Controllers()
+	// app.Register(&AppController{})
+	app.Register(&DashboardController{})
+	app.Register(new(ServiceLogsController))
+	app.Register(new(ConfigurationController))
+	app.Static("static", wd+"assets")
+	app.LayoutTemplate = "_layout.html"
+	knot.RegisterApp(app)
+
+}
