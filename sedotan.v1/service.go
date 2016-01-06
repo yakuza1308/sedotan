@@ -148,7 +148,7 @@ func (g *GrabService) execService() {
 					q.Close()
 					g.DestDbox[key].IConnection.Close()
 
-					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished, %d record fetch", g.Name, key, xN), "INFO")
+					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished with %d record fetch", g.Name, key, xN), "INFO")
 
 					//ADD History
 					historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
