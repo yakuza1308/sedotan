@@ -89,7 +89,7 @@ iframe{
 				self.rowdeletelist.push(new ConditionBase())
 			}
 		})
-		return self;
+		return self; 
 	}
 	var Config = {
 		Data:ko.observableArray([]),
@@ -753,7 +753,7 @@ iframe{
 			$(Config.selectedItem(), $("#URLPreview").contents()).attr("style",existingStyle);
 		}
 		
-		console.log(selector);
+		// console.log(selector);
 		$("body", $("#URLPreview").contents()).scrollTop($(selector, $("#URLPreview").contents()).offset().top)
 		
 		Config.selectedItem(selector);
@@ -835,7 +835,7 @@ iframe{
 				delete data.datasettings()[i]["rowdeletelist"]
 			}
 		}
-		console.log(data);
+		// console.log(data);
 		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
 		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
 		data.logconf.logpath("data/logs/"+filename+"/");

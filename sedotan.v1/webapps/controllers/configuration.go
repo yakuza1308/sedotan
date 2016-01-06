@@ -180,25 +180,11 @@ func (a *ConfigurationController) GetURL(k *knot.WebContext) interface{} {
 		Method    string
 		Parameter tk.M
 	}{}
-	// d := map[string]interface{}{}
-	fmt.Println("tadaaa")
 	e := k.GetPayload(&d)
 	if e != nil {
 		fmt.Println(e)
 	}
 	k.Config.OutputType = knot.OutputJson
-	// data := []byte{}
-	param := tk.M{}
-	param.Set("Pu00231_Input.trade_date", "20160106")
-	param.Set("Pu00231_Input.variety", "i")
-	param.Set("Pu00231_Input.trade_type", "0")
-	param.Set("Submit", "Go")
-	param.Set("action", "Pu00231_result")
-	fmt.Println(d.Parameter)
-	// if tk.IsValid(d.Parameter) {
-	// 	return tk.Jsonify(d.Parameter)
-	// }
-	// param = tk.M
 	fmt.Println(d)
 	r, e := tk.HttpCall(d.URL, d.Method, nil, tk.M{}.Set("formvalues", d.Parameter))
 	fmt.Println(e)
