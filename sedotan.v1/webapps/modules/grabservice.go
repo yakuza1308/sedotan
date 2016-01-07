@@ -3,6 +3,7 @@ package modules
 import (
 	// "bufio"
 	"fmt"
+	"github.com/eaciit/cast"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/csv"
 	_ "github.com/eaciit/dbox/dbc/json"
@@ -32,10 +33,11 @@ var (
 		return d + "/../"
 	}()
 
-	filename    = wd + "data\\config.json"
-	historyPath = wd + "data\\history\\"
-	grabs       *sdt.GrabService
-	grabber     *sdt.Grabber
+	filename       = wd + "data\\config.json"
+	historyPath    = wd + "data\\history\\"
+	historyRecPath = wd + "\\data\\HistoryRec\\"
+	grabs          *sdt.GrabService
+	grabber        *sdt.Grabber
 )
 
 func NewGrabService() *GrabModule {
@@ -205,27 +207,33 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		xGrabService.DestDbox[dataToMap["name"].(string)] = &tempDestInfo
 
 		//=History===========================================================
-		tempHistInfo := sdt.DestInfo{}
-		hci := dbox.ConnectionInfo{}
-		dateNow := time.Now()
-		dateFormat := dateNow.Format("20060102")
-		historyPath := fmt.Sprintf("%s%s-%s.csv", historyPath, xGrabService.Name, dateFormat)
+		// dateNow := time.Now()
+		// dateFormat := dateNow.Format("200601")
 
-		hci.Host = historyPath
-		hci.Database = ""
-		hci.UserName = ""
-		hci.Password = ""
-		hci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",").Set("newfile", true)
+		// hPath := fmt.Sprintf("%s%s-%s.csv", historyPath, xGrabService.Name, dateFormat)
+		xGrabService.HistoryPath = historyPath       //"E:\\data\\vale\\history\\"
+		xGrabService.HistoryRecPath = historyRecPath //"E:\\data\\vale\\historyrec\\"
+		// tempHistInfo := sdt.DestInfo{}
+		// hci := dbox.ConnectionInfo{}
+		// dateNow := time.Now()
+		// dateFormat := dateNow.Format("20060102")
+		// historyPath := fmt.Sprintf("%s%s-%s.csv", historyPath, xGrabService.Name, dateFormat)
 
-		tempHistInfo.Collection = ""
-		tempHistInfo.Desttype = "csv"
+		// hci.Host = historyPath
+		// hci.Database = ""
+		// hci.UserName = ""
+		// hci.Password = ""
+		// hci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",").Set("newfile", true)
 
-		tempHistInfo.IConnection, e = dbox.NewConnection(tempHistInfo.Desttype, &hci)
-		if e != nil {
-			return nil, e.Error()
-		}
+		// tempHistInfo.Collection = ""
+		// tempHistInfo.Desttype = "csv"
 
-		xGrabService.HistDbox = &tempHistInfo
+		// tempHistInfo.IConnection, e = dbox.NewConnection(tempHistInfo.Desttype, &hci)
+		// if e != nil {
+		// 	return nil, e.Error()
+		// }
+
+		// xGrabService.HistDbox = &tempHistInfo
 		//===================================================================
 	}
 
@@ -303,17 +311,17 @@ func (g *GrabModule) CheckStat(datas []interface{}) interface{} {
 
 		if knot.SharedObject().Get(vToMap["nameid"].(string)) != nil {
 			i := knot.SharedObject().Get(vToMap["nameid"].(string)).(*sdt.GrabService)
-			tLast := i.LastGrabExe.Format("2006/01/02 15:04:05")
+			tLast := cast.Date2String(i.LastGrabExe, "YYYY/MM/dd HH:mm:ss") //i.LastGrabExe.Format("2006/01/02 15:04:05")
 			if tLast != "0001/01/01 00:00:00" {
 				lastDate = tLast
 			}
-			tNext := i.NextGrabExe.Format("2006/01/02 15:04:05")
+			tNext := cast.Date2String(i.NextGrabExe, "YYYY/MM/dd HH:mm:ss") //i.NextGrabExe.Format("2006/01/02 15:04:05")
 			if tNext != "0001/01/01 00:00:00" {
 				nextDate = tNext
 			}
 
-			startdate := i.StartDate.Format("2006/01/02 15:04:05")
-			enddate := i.EndDate.Format("2006/01/02 15:04:05")
+			startdate := cast.Date2String(i.StartDate, "YYYY/MM/dd HH:mm:ss") //i.StartDate.Format("2006/01/02 15:04:05")
+			enddate := cast.Date2String(i.EndDate, "YYYY/MM/dd HH:mm:ss")     //i.EndDate.Format("2006/01/02 15:04:05")
 			summaryNotes.Set("startDate", startdate)
 			summaryNotes.Set("endDate", enddate)
 			summaryNotes.Set("grabCount", i.GrabCount)
