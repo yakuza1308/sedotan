@@ -45,10 +45,19 @@ iframe{
 	border-bottom:3px solid #0672A0;
 	margin-bottom: 10px;
 }
+.no-margin-bottom{
+	margin-bottom: 0px;
+}
 </style>
 <h1>Configuration</h1><br/>
 <script type="text/javascript">
 	model.PageId("Configuration");
+	function ConditionBase(){
+		var self = this;
+		self.column = ko.observable("");
+		self.value = ko.observable("");
+		return self;
+	}
 	function ColumnBase(){
 		var self = this;
 		self.index = ko.observable(0);
@@ -61,6 +70,8 @@ iframe{
 		self.name = ko.observable("");
 		self.rowselector = ko.observable("");
 		self.columnsettings = ko.observableArray([]);
+		self.rowdeletecond = ko.observable("");
+		self.rowdeletelist =  ko.observableArray([]);
 		self.desttype = ko.observable("csv");
 		self.connectioninfo = {
 			host:ko.observable(""),
@@ -71,15 +82,22 @@ iframe{
 				delimiter:ko.observable(","),
 			},
 		};
+		self.rowdeletecond.subscribe(function(newVal){
+			if(newVal==""){
+				self.rowdeletelist([]);
+			}else if(self.rowdeletelist().length==0){
+				self.rowdeletelist.push(new ConditionBase())
+			}
+		})
 		return self;
 	}
 	var Config = {
 		Data:ko.observableArray([]),
 		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
-		url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
+		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
 		// url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
-		// url:ko.observable(""),
+		url:ko.observable(""),
 		nameid:ko.observable(""),
 		calltype:ko.observable("GET"),
 		parameter:ko.observable(""),
@@ -98,6 +116,13 @@ iframe{
 		},
 
 		// Data Source
+		operatorList:ko.observableArray([
+				{Id:"",Title:"-"},
+				{Id:"$and",Title:"AND"},
+				{Id:"$or",Title:"OR"},
+				{Id:"$nand",Title:"NAND"},
+				{Id:"$nor",Title:"NOR"},
+			]),
 		calltypeList:ko.observableArray(["GET","POST"]),
 		intervalList:ko.observableArray(["seconds","minutes","hours"]),
 		sourcetypeList:ko.observableArray(["SourceType_Http"]),
@@ -245,7 +270,9 @@ iframe{
 							<tbody data-bind="foreach:datasettings">
 								<tr>
 									<td data-bind="text:name()==''?'-':name"></td>
-									<td data-bind="text:rowselector()==''?'-':rowselector"></td>
+									<td>
+										<div data-bind="text:rowselector()==''?'-':rowselector"></div>
+									</td>
 									<td class="align-center">
 										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.ActiveData('+$index()+')'}">
 											<span class="fa fa-edit"></span>
@@ -268,7 +295,7 @@ iframe{
 								Name
 							</label>
 							<div class="col-md-7">
-								<input type="text" data-bind="value:name" class="form-control"/>
+								<input type="text" data-bind="value:name" class="form-control input-sm"/>
 							</div>
 						</div>
 						<div class="row">
@@ -276,10 +303,10 @@ iframe{
 								Row Selector
 							</label>
 							<div class="col-md-7">
-								<div class="input-group">
+								<div class="input-group input-group-sm">
 									<input type="text" data-bind="value:rowselector" class="form-control"/>
 									<span class="input-group-btn">
-										<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
+										<button class="btn btn-primary" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
 											<span class="fa fa-search"></span>
 										</button>
 									</span>
@@ -300,20 +327,23 @@ iframe{
 							<div class="col-md-12">
 								<table width="100%" class="table">
 									<tr>
-										<th width="40%">Alias</th>
+										<th width="35%">Alias</th>
 										<th>Selector</th>
 									</tr>
 									<tbody data-bind="foreach:columnsettings">
 										<tr>
 											<td>
-												<input type="text" class="form-control" data-bind="value:alias"/>
+												<input type="text" class="form-control input-sm" data-bind="value:alias"/>
 											</td>
 											<td>
-												<div class="input-group">
+												<div class="input-group input-group-sm">
 													<input type="text" class="form-control" data-bind="value:selector"/>
 											      	<span class="input-group-btn">
-											        	<button class="btn btn-default" data-bind="attr:{onclick:'Config.GetColumnSettings('+$index()+')'}">
+											        	<button class="btn btn-primary" data-bind="attr:{onclick:'Config.GetColumnSettings('+$index()+')'}">
 															<span class="fa fa-search"></span>
+														</button>
+														<button class="btn btn-default" data-bind="attr:{onclick:'Config.RemoveColumnSettings('+$index()+')'}">
+															<span class="fa fa-trash"></span>
 														</button>
 											      	</span>
 											    </div>
@@ -323,6 +353,47 @@ iframe{
 								</table>
 							</div>
 						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Row Delete Cond.
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:rowdeletecond,data:$parent.operatorList,dataTextField: 'Title', dataValueField: 'Id'}" />
+							</div>
+						</div>
+						<div class="row" data-bind="visible:rowdeletecond()!==''">
+							<div class="col-md-12">
+								<table width="100%" class="table no-margin-bottom">
+									<tr>
+										<th width="35%">Column</th>
+										<th>Value</th>
+									</tr>
+									<tbody data-bind="foreach:rowdeletelist">
+										<tr>
+											<td>
+												<input type="text" class="form-control input-sm" data-bind="value:column"/>
+											</td>
+											<td>
+												<div class="input-group input-group-sm">
+													<input type="text" class="form-control" data-bind="value:value"/>
+											      	<span class="input-group-btn">
+														<button class="btn btn-default" data-bind="attr:{onclick:'Config.RemoveCondition('+$index()+')'}">
+															<span class="fa fa-trash"></span>
+														</button>
+											      	</span>
+											    </div>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+								<div class="align-right">
+									<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.AddCondition('+$index()+')'}">
+										<span class="fa fa-plus"></span> add condition
+									</button>
+								</div>
+							</div>
+						</div>
+
 						<div class="row">
 							<label class="col-md-5">
 								Destination Type
@@ -336,7 +407,7 @@ iframe{
 								Host
 							</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control" data-bind="value:connectioninfo.host"/>
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.host"/>
 							</div>
 						</div>
 						<div class="row" data-bind="visible:desttype()=='mongodb'">
@@ -344,7 +415,7 @@ iframe{
 								Database
 							</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control" data-bind="value:connectioninfo.database"/>
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.database"/>
 							</div>
 						</div>
 						<div class="row" data-bind="visible:desttype()=='mongodb'">
@@ -352,7 +423,7 @@ iframe{
 								Collection
 							</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control" data-bind="value:connectioninfo.collection"/>
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.collection"/>
 							</div>
 						</div>
 						<div class="row" data-bind="visible:desttype()=='csv'">
@@ -368,7 +439,7 @@ iframe{
 								Delimiter
 							</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control" data-bind="value:connectioninfo.settings.delimiter"/>
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.settings.delimiter"/>
 							</div>
 						</div>
 					</div>
@@ -453,7 +524,7 @@ iframe{
 
 					<button class="btn btn-default" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(1)">Back</button>
 					<button class="btn btn-default" data-bind="visible:ProcessNumber()==3" onclick="Config.ProcessNumber(2)">Back</button>
-					<button class="btn btn-success" data-bind="visible:ProcessNumber()==1,attr:{disabled:!Config.isURLSet()}" onclick="Config.ProcessNumber(2)">Next</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==1,attr:{disabled:!Config.isURLSet()}" onclick="Config.CheckNameID()">Next</button>
 					<button class="btn btn-success" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(3)">Next</button>
 					<button class="btn btn-success" data-bind="visible:ProcessNumber()==3,click:Save">Save</button>
 				</div>
@@ -461,9 +532,14 @@ iframe{
 		</div>
 		<div class="col-md-9" data-bind="attr:{'class':isURLSet()?'col-md-9':'col-md-12'}">
 			<div id="iframeTemplate">
+				<style>
+					body{
+						background: #FDFDFD;
+					}
+				</style>
 				<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
 				<div style="font-family:'Open Sans';">
-					<div class="align-center" style="text-align:center;font-size: 20px;color: #373e4a;">Result Preview</div>
+					<div class="align-center" style="text-align: center;font-size: 50px;color: #373e4a;margin-top: 170px">Result Preview</div>
 				</div>
 			</div>
 			<iframe name="URLPreview" id="URLPreview" width="100%" height="450px" frameborder="0"></iframe>
@@ -471,16 +547,36 @@ iframe{
 	</div>
 </div>
 <script type="text/javascript">
+	Config.CheckNameID = function(){
+		var nameid = Config.nameid();
+		if(nameid.trim()==""){
+			alert("Please input the Name ID")
+			return false;
+		}
+		Config.ProcessNumber(2);
+	}
 	Config.RemoveRowData = function(index){
 		var d = Config.datasettings()[index];
 		Config.datasettings.remove(d);
 	}
+	Config.RemoveCondition = function(index){
+		var ActiveData = Config.ActiveData();
+		var data = Config.datasettings()[ActiveData].rowdeletelist()[index];
+		Config.datasettings()[ActiveData].rowdeletelist.remove(data);
+	}
+	Config.RemoveColumnSettings = function(index){
+		var ActiveData = Config.ActiveData();
+		var data = Config.datasettings()[ActiveData].columnsettings()[index];
+		Config.datasettings()[ActiveData].columnsettings.remove(data);
+	}
 	Config.GetColumnSettings = function(index){
 		Config.isSelecting(true);
+		Config.selectedItem("");
 		Config.selectingWhat("columnsettings"+index);
 	}
 	Config.GetRowSelector = function(index){
 		Config.isSelecting(true);
+		Config.selectedItem("");
 		Config.selectingWhat("rowselector"+index);
 	}
 	Config.CompleteSelection = function(){
@@ -528,7 +624,9 @@ iframe{
 	Config.AddColumn = function(index){
 		Config.datasettings()[index].columnsettings.push(new ColumnBase());
 	}
-
+	Config.AddCondition = function(index){
+		Config.datasettings()[index].rowdeletelist.push(new ConditionBase());	
+	}
 	Config.Reset = function(){
 		Config.url("");
 		Config.parameter("");
@@ -616,11 +714,11 @@ iframe{
 		}
 		var nodeName = obj.get()[0].nodeName.toLowerCase();
 		if(id!==""){
-			selector+=">"+nodeName+"#"+obj.attr("id").split(" ")[0]+":eq("+index+")";
+			selector+=" > "+nodeName+"#"+obj.attr("id").split(" ")[0]+":eq("+index+")";
 		}else if(classes!==""){
-			selector+=">"+nodeName+"."+obj.attr("class").split(" ")[0]+":eq("+index+")";
+			selector+=" > "+nodeName+"."+obj.attr("class").split(" ")[0]+":eq("+index+")";
 		}else{
-			selector+=">"+nodeName+":eq("+index+")";
+			selector+=" > "+nodeName+":eq("+index+")";
 		}
 		
 		var str = "<"+nodeName+" "+id+" "+classes+">..";
@@ -635,7 +733,7 @@ iframe{
 			if (prevNode == node){
 				idx=0;
 			}
-			if($(this).html()!==undefined && node!== "link" && node !=="script"){
+			if($(this).html()!==undefined && node!== "link" && node !=="script" && node !=="br" && node !=="hr" ){
 				linenumber = Config.GetElement($(this),parseFloat(parent+1),linenumber,idx,selector);
 				idx++;
 			}
@@ -682,6 +780,8 @@ iframe{
 		delete data["Data"]
 		delete data["isFormActive"]
 		delete data["isURLSet"]
+		
+		delete data["operatorList"]
 		delete data["calltypeList"]
 		delete data["intervalList"]
 		delete data["sourcetypeList"]
@@ -716,8 +816,26 @@ iframe{
 				default:
 					break;
 			}
+			var rowdeletecond = data.datasettings()[i].rowdeletecond();
+			if(rowdeletecond==""){
+				delete data.datasettings()[i]["rowdeletelist"]
+				delete data.datasettings()[i]["rowdeletecond"]
+			}else{
+				var condition = {}
+				condition[rowdeletecond] = [];
+				var rowdeletelist = data.datasettings()[i].rowdeletelist();
+				for(var r in rowdeletelist){
+					var obj = {};
+					var col = rowdeletelist[r].column();
+					var val = rowdeletelist[r].value();
+					obj[col] = val
+					condition[rowdeletecond].push(obj);
+				} 
+				data.datasettings()[i].rowdeletecond(condition);
+				delete data.datasettings()[i]["rowdeletelist"]
+			}
 		}
-
+		console.log(data);
 		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
 		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
 		data.logconf.logpath("data/logs/"+filename+"/");

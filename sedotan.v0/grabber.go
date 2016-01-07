@@ -8,6 +8,7 @@ import (
 	"github.com/eaciit/toolkit"
 	"net/http"
 	"net/http/cookiejar"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
