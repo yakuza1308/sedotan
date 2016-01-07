@@ -3,9 +3,25 @@
 <script type="text/javascript">
 var Config = {
     isHistory: ko.observable(false),
-    isSnapShot: ko.observable(true)
+    isSnapShot: ko.observable(true),
+    isViewData:ko.observable(false),
+    Data:ko.observableArray([]),
+}
+var ViewData = {
+    Processing:ko.observable(false),
+    HistoryData:ko.observableArray([]),
+    selectedNameID:ko.observable(""),
 }
 </script>
+<div id="viewDataResult">
+    <div data-bind="visible:ViewData.Processing()" class="align-center">
+        <h4>Please wait while processing your request</h4>
+        <img src="/static/img/loader.gif" alt="Loading..." />
+    </div>
+    <div data-bind="visible:!ViewData.Processing()" class="align-center">
+        <div id="DataResult"></div>
+    </div>
+</div>
 <div data-bind="with:Config">
     <div class="row">
         <div class="col-md-12">
@@ -88,7 +104,7 @@ $.ajax({
     type: "POST",
     async: false,
     success: function(data) {
-
+        Config.Data(data);
         var datas = []
         $.each(data, function(i, v) {
             var dataPush = {}
@@ -290,6 +306,7 @@ function errorStatus(data, dataGrid, summary) {
 }
 
 Config.History = function(nameid){
+    ViewData.selectedNameID(nameid);
     Config.isHistory(true);
     Config.isSnapShot(false)
 
@@ -301,12 +318,13 @@ Config.History = function(nameid){
         type: "POST",
         data: JSON.stringify(obj),
         success: function(data) {
+            ViewData.HistoryData(data);
             var dataHistory = new kendo.data.DataSource({
                 data: data,
                 pageSize: 10
             });
 
-            $("#grid-history").kendoGrid({
+            var dsGridHistory = $("#grid-history").kendoGrid({
                 dataSource: dataHistory,
                 noRecords: true,
                 messages: {
@@ -314,27 +332,100 @@ Config.History = function(nameid){
                 },
                 sortable: true,
                 dataBound: onHistoryDataBound,
-                pageable: {pageSizes: true,buttonCount: 5},
+                pageable: {pageSizes: true},
                 columns: [
                 {field: "id",title: "ID", width: 50}, 
-                {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), width: 50},
+                {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), width: 60},
                 {field: "datasettingname",title: "DATA NAME"}, 
                 {field: "grabdate",title: "START"},
                 {field: "rowgrabbed",title: "GRAB COUNT"},
                 {field: "rowsaved",title: "ROW SAVE"},
                 {field: "notehistory",title: "NOTE"},
-                {field: "viewBtn",title: "&nbsp;",width:100,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.ViewData()'><span>View Data</span></button>"},
+                {field: "viewBtn",title: "&nbsp;",width:100,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.ViewData(\"#:datasettingname#\",\"#:id#\")'><span>View Data</span></button>"},
                 {field: "logBtn",title: "&nbsp;",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.Log(\"#:grabdate#\",\"#:nameid#\")'><span>Log</span></button>"}
                 ]
             });
+
+            var gridHs = $("#grid-history").data("kendoGrid");
+            gridHs.setDataSource(dataHistory); // sets to a blank dataSource
         },
         error: function(e) {
             console.log(e);
         }
     });
 }
+ViewData.Prepare = function(datasettingname){
+    var nameid = ViewData.selectedNameID();
+    var ConfigList = Config.Data();
+    var datasettings = Enumerable.From(ConfigList).Where(function(x){return x.nameid == nameid}).FirstOrDefault().datasettings;
+    var data = Enumerable.From(datasettings).Where(function(x){return x.name == datasettingname}).FirstOrDefault();
+    var columnsettings = data.columnsettings;
+    var series = [];
+    for(var i in columnsettings){
+        var s = {
+            field:columnsettings[i].alias,//'col'+i,
+            title:columnsettings[i].alias
+        }
+        series.push(s)
+    }
+    $("#DataResult").html("");
+    $("#DataResult").kendoGrid({
+        dataSource: {},
+        autoBind: false,
+        scrollable: true,
+        pageable:true,
+        sortable: true,
+        filterable: true,
+        columns: series
+    });
+}
+
+ViewData.Fetch = function(dataSource){
+    var source = {
+        data: dataSource,
+        pageSize:10
+    }
+    $("#DataResult").data("kendoGrid").setDataSource(source);
+    $("#DataResult").data("kendoGrid").dataSource.read();
+}
+
+Config.ViewData = function(datasettingname,id){
+    ViewData.Processing(true);
+    var obj = $("#viewDataResult");
+    if(obj.data("kendoWindow")!==undefined){
+        obj.data("kendoWindow").open();
+        obj.data("kendoWindow").center();
+    }else{
+        obj.kendoWindow({
+            title: "View Data",
+            modal: true,
+            resizable: false,
+            width: 600,
+            heigt:350,
+        });
+        obj.data("kendoWindow").center();
+    }
+    ViewData.Prepare(datasettingname);
+    var HistoryData = ViewData.HistoryData();
+    var recfile = Enumerable.From(HistoryData).Where(function(x){return x.id==id}).FirstOrDefault().recfile;
+    var url = "{{BaseUrl}}result/getdatafromcsv";
+    var parm = {
+        host:recfile,
+        delimiter:",",
+        useheader:true,
+    }
+    ajaxPost(url,parm,function(res){
+        ViewData.Processing(false);
+        ViewData.Fetch(res);
+    },
+    function(err){
+        alert(err.responseText)
+    });
+}
+
 
 Config.GoBack = function(){
+    ViewData.selectedNameID("");
     Config.isHistory(false);
     Config.isSnapShot(true);
     $.each(grid.dataSource.data(), function(key, val) {

@@ -3,11 +3,13 @@ package sedotan
 import (
 	"errors"
 	"fmt"
+	"github.com/eaciit/cast"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/csv"
 	_ "github.com/eaciit/dbox/dbc/json"
 	_ "github.com/eaciit/dbox/dbc/mongo"
 	"github.com/eaciit/toolkit"
+	"os"
 	"strings"
 	"time"
 )
@@ -26,7 +28,8 @@ type GrabService struct {
 	TimeOutInterval     time.Duration
 	TimeOutIntervalInfo string
 	DestDbox            map[string]*DestInfo
-	HistDbox            *DestInfo
+	HistoryPath         string
+	HistoryRecPath      string
 	Log                 *toolkit.LogEngine
 
 	ServGrabber *Grabber
@@ -59,6 +62,10 @@ func NewGrabService() *GrabService {
 	g.GrabInterval = 5 * time.Minute
 	g.TimeOutInterval = 1 * time.Minute
 	g.ServiceRunningStat = false
+
+	dir, _ := os.Getwd()
+	g.HistoryPath = strings.Replace(dir, " ", "\\ ", -1)
+	g.HistoryRecPath = strings.Replace(dir, " ", "\\ ", -1)
 	return g
 }
 
@@ -151,32 +158,89 @@ func (g *GrabService) execService() {
 					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished with %d record fetch", g.Name, key, xN), "INFO")
 
 					//ADD History
+					recfile := g.AddRecHistory(docs)
 					historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
-						Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED")
+						Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", recfile)
 					if g.LastGrabStat {
 						historyservice.Set("grabstatus", "SUCCESS")
 					}
 
-					e = g.HistDbox.IConnection.Connect()
-					if e != nil {
-						g.ErrorNotes = fmt.Sprintf("[%s-%s] Connect to history failed [%s-%s]:%s", g.Name, key, g.HistDbox.Desttype, g.HistDbox.IConnection.Info().Host, e)
-						g.Log.AddLog(g.ErrorNotes, "ERROR")
-					}
-
-					if g.HistDbox.Collection == "" {
-						e = g.HistDbox.IConnection.NewQuery().Insert().Exec(toolkit.M{"data": historyservice})
-					} else {
-						e = g.HistDbox.IConnection.NewQuery().From(g.DestDbox[key].Collection).Insert().Exec(toolkit.M{"data": historyservice})
-					}
-
-					if e != nil {
-						g.ErrorNotes = fmt.Sprintf("[%s-%s] Insert to history failed [%s-%s]:%s", g.Name, key, g.HistDbox.Desttype, g.HistDbox.IConnection.Info().Host, e)
-						g.Log.AddLog(g.ErrorNotes, "ERROR")
-					}
+					g.AddHistory(historyservice)
 				}
 			}
 		}
 	}(g)
+}
+
+func (g *GrabService) AddRecHistory(docs []toolkit.M) string {
+	var config = map[string]interface{}{"useheader": true, "delimiter": ",", "newfile": true}
+	file := fmt.Sprintf("%s%s-%s.csv", g.HistoryRecPath, g.Name, cast.Date2String(time.Now(), "YYYYMMddHHmmss"))
+	ci := &dbox.ConnectionInfo{file, "", "", "", config}
+	c, e := dbox.NewConnection("csv", ci)
+	if e != nil {
+		g.ErrorNotes = fmt.Sprintf("[%s] Setup connection to Record history failed [csv-%s]:%s", g.Name, file, e)
+		g.Log.AddLog(g.ErrorNotes, "ERROR")
+		return ""
+	}
+
+	e = c.Connect()
+	if e != nil {
+		g.ErrorNotes = fmt.Sprintf("[%s] Setup connection to history failed [csv-%s]:%s", g.Name, file, e)
+		g.Log.AddLog(g.ErrorNotes, "ERROR")
+		return ""
+	}
+
+	// q := c.NewQuery().SetConfig("multiexec", true).Save()
+
+	for _, doc := range docs {
+		e = c.NewQuery().Insert().Exec(toolkit.M{"data": doc})
+		if e != nil {
+			g.ErrorNotes = fmt.Sprintf("[%s] Insert to history failed [csv-%s]:%s", g.Name, file, e)
+			g.Log.AddLog(g.ErrorNotes, "ERROR")
+			return ""
+		}
+	}
+	c.Close()
+
+	return file
+}
+
+func (g *GrabService) AddHistory(history toolkit.M) {
+	mapHeader := make([]toolkit.M, 7)
+	mapHeader[0] = toolkit.M{}.Set("datasettingname", "string")
+	mapHeader[1] = toolkit.M{}.Set("grabdate", "date")
+	mapHeader[2] = toolkit.M{}.Set("grabstatus", "string")
+	mapHeader[3] = toolkit.M{}.Set("rowgrabbed", "int")
+	mapHeader[4] = toolkit.M{}.Set("rowsaved", "int")
+	mapHeader[5] = toolkit.M{}.Set("note", "string")
+	mapHeader[6] = toolkit.M{}.Set("recfile", "string")
+
+	var config = map[string]interface{}{"mapheader": mapHeader, "useheader": true, "delimiter": ",", "newfile": true}
+	file := fmt.Sprintf("%s%s-%s.csv", g.HistoryPath, g.Name, cast.Date2String(time.Now(), "YYYYMM"))
+	ci := &dbox.ConnectionInfo{file, "", "", "", config}
+	c, e := dbox.NewConnection("csv", ci)
+	if e != nil {
+		g.ErrorNotes = fmt.Sprintf("[%s] Setup connection to history failed [csv-%s]:%s", g.Name, file, e)
+		g.Log.AddLog(g.ErrorNotes, "ERROR")
+		return
+	}
+
+	e = c.Connect()
+	if e != nil {
+		g.ErrorNotes = fmt.Sprintf("[%s] Setup connection to history failed [csv-%s]:%s", g.Name, file, e)
+		g.Log.AddLog(g.ErrorNotes, "ERROR")
+		return
+	}
+
+	e = c.NewQuery().Insert().Exec(toolkit.M{"data": history})
+	if e != nil {
+		g.ErrorNotes = fmt.Sprintf("[%s] Insert to history failed [csv-%s]:%s", g.Name, file, e)
+		g.Log.AddLog(g.ErrorNotes, "ERROR")
+		c.Close()
+		return
+	}
+
+	c.Close()
 }
 
 func (g *GrabService) StartService() error {
