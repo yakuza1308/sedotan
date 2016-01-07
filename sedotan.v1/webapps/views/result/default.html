@@ -1,0 +1,219 @@
+<style>
+.filter > div,.filter > label{
+	margin-bottom: 10px;
+}
+.filter > label{
+	line-height:25px;
+}
+.filter > label:after{
+	content: ":";
+	position: absolute;
+    right: 0;
+}
+.fullwidth{
+	width: 100%;
+}
+#FirstLoadContent{
+	background: #F7F7F7;
+    border: 1px solid #D3D3D3;
+    font-size: 20px;
+    text-align: center;
+    padding: 150px 0px;
+}
+</style>
+<h1>Result</h1><br/>
+<script type="text/javascript">
+model.PageId("Result");
+var Result = {
+	Data:ko.observableArray([]),
+	nameid:ko.observable(""),
+	dataprocess:ko.observableArray([]),
+	// Data Source
+	NameIDList:ko.observableArray([]),
+	DataProcessList:ko.observableArray([]),
+	// Flag
+	Processing:ko.observable(false),
+	IsResultFound:ko.observable(false),
+}
+Result.nameid.subscribe(function(newValue){
+	var nameid = newValue;
+	var DataList = Result.Data();
+	var datasettings = Enumerable.From(DataList).Where(function(x){return x.nameid == nameid}).FirstOrDefault().datasettings;
+	Result.DataProcessList([]);
+	for(var i in datasettings){
+		Result.DataProcessList.push(datasettings[i].name);
+	}
+	Result.dataprocess(datasettings[0].name);
+});
+</script>
+<div data-bind="with:Result">
+	<div class="row filter">
+	     <label class="col-md-1">
+	     	Name ID
+	     </label>
+	     <div class="col-md-2">
+	     	<input type="text" data-bind="kendoDropDownList:{value:nameid,data:NameIDList}" />
+	     </div>
+	     <label class="col-md-1">
+	     	Data Process
+	     </label>
+	     <div class="col-md-2">
+	     	<input type="text" data-bind="kendoDropDownList:{value:dataprocess,data:DataProcessList}" class="fullwidth"/>
+	     </div>
+	     <div class="col-md-6 align-left">
+			<button class="btn btn-info" data-bind="click:View">View Result</button>
+		</div>
+	</div>
+	<div class="row" data-bind="visible:Processing()">
+		<div class="col-md-12 align-center">
+		    <h4>Please wait while processing your request</h4>
+		    <img src="/static/img/loader.gif" alt="Loading..." />
+		</div>
+	</div>
+	<div class="row" data-bind="visible:!Processing()">
+		<div class="col-md-12" data-bind="visible:!IsResultFound()">
+	     	<div id="FirstLoadContent">
+	     		No Results Found.
+	     	</div>	
+		</div>
+		<div class="col-md-12" data-bind="visible:IsResultFound()">
+			<div id="PreviewResult"></div>	
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+	Result.View = function(){
+		Result.Processing(true);
+		Result.IsResultFound(false);
+		var nameid = Result.nameid();
+		var dataprocess = Result.dataprocess();
+		var DataList = Result.Data();
+		var datasettings = Enumerable.From(DataList).Where(function(x){return x.nameid == nameid}).FirstOrDefault().datasettings;
+		var selectedData = Enumerable.From(datasettings).Where(function(x){return x.name == dataprocess}).FirstOrDefault();
+		switch(selectedData.desttype){
+			case "mongo":
+				Result.GetDataFromMongo(selectedData);
+				break;
+			case "csv":
+				Result.GetDataFromCsv(selectedData);
+				break;
+			default:break;
+		}
+	}
+	Result.GetDataFromMongo = function(data){
+		Result.Prepare(data);
+		var url = "{{BaseUrl}}result/getdatafrommongo";
+		var parm = data.connectioninfo;
+	    ajaxPost(url,parm,function(res){
+	        if(res.length>0){
+				Result.IsResultFound(true);
+			}
+			Result.Fetch(res);
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+
+
+	}
+	Result.GetDataFromCsv = function(data){
+		Result.Prepare(data);
+		var url = "{{BaseUrl}}result/getdatafromcsv";
+		var parm = {
+			host:data.connectioninfo.host,
+			delimiter:data.connectioninfo.settings.delimiter,
+			useheader:data.connectioninfo.settings.useheader,
+		}
+		ajaxPost(url,parm,function(res){
+			if(res.length>0){
+				Result.IsResultFound(true);
+			}
+			Result.Fetch(res);
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	
+	Result.InitiateFilter = function(dataSource){
+		var nameid = "";
+		for(var i in dataSource){
+			if(i==0){
+				nameid = dataSource[i].nameid;
+			}
+			Result.NameIDList.push(dataSource[i].nameid);
+		}
+		Result.nameid(nameid);
+	}
+	Result.GetData = function(){
+		var url = "{{BaseUrl}}result/getdata";
+		var parm = {};
+		ajaxPost(url,parm,function(res){
+			Result.Data(res);
+			Result.InitiateFilter(res);
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Result.Fetch = function(dataSource){
+		Result.Processing(false);
+		var source = {
+			data: dataSource,
+			pageSize:10
+		}
+		$("#PreviewResult").data("kendoGrid").setDataSource(source);
+		$("#PreviewResult").data("kendoGrid").dataSource.read();
+	}
+	Result.Prepare = function(data){
+		var columnsettings = data.columnsettings;
+		var series = [];
+		for(var i in columnsettings){
+			var s = {
+				field:columnsettings[i].alias,//'col'+i,
+				title:columnsettings[i].alias
+			}
+			series.push(s)
+		}
+		console.log(series);
+		$("#PreviewResult").html("");
+		$("#PreviewResult").kendoGrid({
+			dataSource: {},
+			autoBind: false,
+			scrollable: true,
+			pageable:true,
+			sortable: true,
+			filterable: true,
+			columns: series
+		});
+	}
+	Result.GenGrid = function(dataSource){
+		$("#PreviewResult").html("");
+		$("#PreviewResult").kendoGrid({
+			dataSource: {
+			  data: dataSource,
+			  pageSize: 10
+			},
+			scrollable: true,
+			sortable: true,
+			filterable: true,
+			columns: [
+			  { field: "nameid", title: "Name ID"},
+			  { field: "calltype", title: "Call Type",width:100},
+			  { field: "intervaltype", title: "Interval Type",width:120},
+			  { field: "grabinterval", title: "Grab Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
+			  { field: "timeoutinterval", title: "Timeout Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
+			  { field: "datasettings", title: "Data Setting",template:"#:datasettings.length# Data"},
+			  { field: "nameid", title: "&nbsp;",filterable:false,sortable:false,width:100,attributes:{ class:"align-center" },
+			  	template:"<button class='btn btn-default' onclick='Config.Edit(\"#:nameid#\")'><span class='fa fa-edit' ></span></button>"+
+			  	"&nbsp;"+
+			  	"<button class='btn btn-default' onclick='Config.Delete(\"#:nameid#\")'><span class='fa fa-trash' ></span></button>"
+			  },
+
+			]
+		});
+	}
+	$(document).ready(function(){
+		Result.GetData();
+	});
+</script>

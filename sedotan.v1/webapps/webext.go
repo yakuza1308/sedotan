@@ -20,7 +20,7 @@ func init() {
 	app.Controllers()
 	// app.Register(&AppController{})
 	app.Register(&DashboardController{})
-	app.Register(new(ServiceLogsController))
+	app.Register(new(ResultController))
 	app.Register(new(ConfigurationController))
 	app.Register(new(GrabModule))
 	app.Static("static", wd+"assets")

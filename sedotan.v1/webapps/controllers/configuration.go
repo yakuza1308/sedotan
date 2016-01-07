@@ -178,15 +178,16 @@ func (a *ConfigurationController) GetURL(k *knot.WebContext) interface{} {
 	d := struct {
 		URL       string
 		Method    string
-		Parameter interface{}
+		Parameter tk.M
 	}{}
 	e := k.GetPayload(&d)
-	k.Config.OutputType = knot.OutputJson
-	data := []byte{}
-	if tk.IsValid(d.Parameter) {
-		return tk.Jsonify(d.Parameter)
+	if e != nil {
+		fmt.Println(e)
 	}
-	r, e := tk.HttpCall(d.URL, d.Method, data, nil)
+	k.Config.OutputType = knot.OutputJson
+	fmt.Println(d)
+	r, e := tk.HttpCall(d.URL, d.Method, nil, tk.M{}.Set("formvalues", d.Parameter))
+	fmt.Println(e)
 	if e != nil {
 		return e.Error()
 	} else {
