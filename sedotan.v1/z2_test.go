@@ -147,7 +147,24 @@ func TestServiceGrabGet(t *testing.T) {
 	}
 
 	xGrabService.DestDbox["DATA01"] = &tempDestInfo
+	//=History===========================================================
+	tempHistInfo := DestInfo{}
+	hci := dbox.ConnectionInfo{}
+	hci.Host = "E:\\data\\vale\\history\\" + xGrabService.Name + "-201601.csv"
+	hci.Database = ""
+	hci.UserName = ""
+	hci.Password = ""
+	hci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",").Set("newfile", true)
 
+	tempHistInfo.Collection = ""
+	tempHistInfo.Desttype = "csv"
+
+	tempHistInfo.IConnection, e = dbox.NewConnection(tempHistInfo.Desttype, &hci)
+	if e != nil {
+		t.Errorf("Error Found : ", e)
+	}
+
+	xGrabService.HistDbox = &tempHistInfo
 	//===================================================================
 
 	e = xGrabService.StartService()
