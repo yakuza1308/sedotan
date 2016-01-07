@@ -77,7 +77,7 @@ func (h *HistoryModule) OpenHistory() interface{} {
 		addToMap.Set("rowgrabbed", h.rowgrabbed)
 		addToMap.Set("rowsaved", h.rowsaved)
 		addToMap.Set("notehistory", v.(toolkit.M)["note"])
-		addToMap.Set("recfile", v.(toolkit.M)["recfile"])
+		addToMap.Set("recfile", v.(toolkit.M).Get("recfile"))
 		addToMap.Set("nameid", h.nameid)
 
 		history = append(history, addToMap)
