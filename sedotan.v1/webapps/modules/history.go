@@ -3,6 +3,7 @@ package modules
 import (
 	"bufio"
 	"fmt"
+	"github.com/eaciit/cast"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/csv"
 	"github.com/eaciit/toolkit"
@@ -14,7 +15,7 @@ import (
 
 type HistoryModule struct {
 	filepathName, nameid, logPath string
-	humanDate                     time.Time
+	humanDate                     string
 	rowgrabbed, rowsaved          float64
 }
 
@@ -25,8 +26,8 @@ var (
 func NewHistory(nameid string) *HistoryModule {
 	h := new(HistoryModule)
 
-	dateNow := time.Now()
-	path := filepath + nameid + "-" + dateNow.Format("20060102") + ".csv"
+	dateNow := cast.Date2String(time.Now(), "YYYYMM") //time.Now()
+	path := filepath + nameid + "-" + dateNow + ".csv"
 	h.filepathName = path
 	h.nameid = nameid
 	return h
@@ -61,20 +62,22 @@ func (h *HistoryModule) OpenHistory() interface{} {
 	}
 
 	var history = []interface{}{} //toolkit.M{}
-	for _, v := range ds.Data {
-		layout := "2006/01/02 15:04:05"
-		h.humanDate, _ = time.Parse(time.RFC3339, v.(toolkit.M)["grabdate"].(string))
+	for i, v := range ds.Data {
+		// layout := "2006/01/02 15:04:05"
+		castDate, _ := time.Parse(time.RFC3339, v.(toolkit.M)["grabdate"].(string))
+		h.humanDate = cast.Date2String(castDate, "YYYY/MM/dd HH:mm:ss")
 		h.rowgrabbed, _ = strconv.ParseFloat(v.(toolkit.M)["rowgrabbed"].(string), 64)
 		h.rowsaved, _ = strconv.ParseFloat(v.(toolkit.M)["rowsaved"].(string), 64)
 
 		var addToMap = toolkit.M{}
-		// addToMap.Set("id", v.(toolkit.M)["id"])
+		addToMap.Set("id", i+1)
 		addToMap.Set("datasettingname", v.(toolkit.M)["datasettingname"])
-		addToMap.Set("grabdate", h.humanDate.Format(layout))
+		addToMap.Set("grabdate", h.humanDate)
 		addToMap.Set("grabstatus", v.(toolkit.M)["grabstatus"])
 		addToMap.Set("rowgrabbed", h.rowgrabbed)
 		addToMap.Set("rowsaved", h.rowsaved)
 		addToMap.Set("notehistory", v.(toolkit.M)["note"])
+		addToMap.Set("recfile", v.(toolkit.M)["recfile"])
 		addToMap.Set("nameid", h.nameid)
 
 		history = append(history, addToMap)

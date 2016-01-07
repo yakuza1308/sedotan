@@ -306,7 +306,7 @@ Config.History = function(nameid){
                 pageSize: 10
             });
 
-            $("#grid-history").kendoGrid({
+            var dsGridHistory = $("#grid-history").kendoGrid({
                 dataSource: dataHistory,
                 noRecords: true,
                 messages: {
@@ -314,19 +314,22 @@ Config.History = function(nameid){
                 },
                 sortable: true,
                 dataBound: onHistoryDataBound,
-                pageable: {pageSizes: true,buttonCount: 5},
+                pageable: {pageSizes: true},
                 columns: [
-                // {field: "id",title: "ID", width: 50}, 
+                {field: "id",title: "ID", width: 50}, 
                 {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), width: 60},
                 {field: "datasettingname",title: "DATA NAME"}, 
                 {field: "grabdate",title: "START"},
                 {field: "rowgrabbed",title: "GRAB COUNT"},
                 {field: "rowsaved",title: "ROW SAVE"},
                 {field: "notehistory",title: "NOTE"},
-                {field: "viewBtn",title: "&nbsp;",width:100,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.ViewData()'><span>View Data</span></button>"},
+                {field: "viewBtn",title: "&nbsp;",width:100,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.ViewData(\"#:recfile#\")'><span>View Data</span></button>"},
                 {field: "logBtn",title: "&nbsp;",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.Log(\"#:grabdate#\",\"#:nameid#\")'><span>Log</span></button>"}
                 ]
             });
+
+            var gridHs = $("#grid-history").data("kendoGrid");
+            gridHs.setDataSource(dataHistory); // sets to a blank dataSource
         },
         error: function(e) {
             console.log(e);

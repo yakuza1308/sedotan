@@ -174,7 +174,7 @@ func (g *GrabService) execService() {
 
 func (g *GrabService) AddRecHistory(docs []toolkit.M) string {
 	var config = map[string]interface{}{"useheader": true, "delimiter": ",", "newfile": true}
-	file := fmt.Sprintf("%s%s-%s.csv", g.HistoryRecPath, g.Name, cast.Date2String(time.Now(), "YYYYMMDDHHmmss"))
+	file := fmt.Sprintf("%s%s-%s.csv", g.HistoryRecPath, g.Name, cast.Date2String(time.Now(), "YYYYMMddHHmmss"))
 	ci := &dbox.ConnectionInfo{file, "", "", "", config}
 	c, e := dbox.NewConnection("csv", ci)
 	if e != nil {
