@@ -91,7 +91,7 @@ func (g *Grabber) GetConfig() (toolkit.M, error) {
 				// time.Now(), Date2String(YYYYMMDD) = time.Now().Date2String(YYYYMMDD)
 				format := ""
 				if strings.Contains(val.(string), "Date2String") {
-					format = strings.Replace(strings.Replace(val.(string), "time.Now().Date2String(", "", -1), ")", "", -1)
+					format = strings.Replace(strings.Replace(val.(string), "Date2String(time.Now(),", "", -1), ")", "", -1)
 				}
 
 				parm[key] = cast.Date2String(time.Now(), format)

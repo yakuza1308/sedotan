@@ -157,15 +157,16 @@ func (g *GrabService) execService() {
 
 					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished with %d record fetch", g.Name, key, xN), "INFO")
 
-					//ADD History
-					recfile := g.AddRecHistory(docs)
-					historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
-						Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", recfile)
-					if g.LastGrabStat {
-						historyservice.Set("grabstatus", "SUCCESS")
-					}
+					if g.HistoryPath != "" && g.HistoryRecPath != "" {
+						recfile := g.AddRecHistory(docs)
+						historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
+							Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", recfile)
+						if g.LastGrabStat {
+							historyservice.Set("grabstatus", "SUCCESS")
+						}
 
-					g.AddHistory(historyservice)
+						g.AddHistory(historyservice)
+					}
 				}
 			}
 		}
