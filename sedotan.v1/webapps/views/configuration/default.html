@@ -656,11 +656,18 @@ iframe{
 		Config.datasettings([]);
 		Config.datasettings.push(new BaseData());
 		Config.AddColumn(0);
+		var parameter = JSON.parse(Config.parameter());
+		for(var i in parameter){
+			var type = typeof parameter[i];
+			if(type!=="object"){
+				parameter[i] = parameter[i].toString();
+			}
+		}
 		var url = "{{BaseUrl}}configuration/geturl";
 		var parm = {
 			URL:Config.url(),
 			Method:Config.calltype(),
-			Parameter:Config.calltype()=="GET"?null:JSON.parse(Config.parameter())
+			Parameter:Config.calltype()=="GET"?null:parameter
 		};
 		ajaxPost(url,parm,function(res){
 			var BaseUrl = Config.url().substr(0,Config.url().substr(Config.url().indexOf("www")).indexOf("/")+Config.url().indexOf("www")+1);
@@ -910,6 +917,7 @@ iframe{
 			}
 
 		}
+		Config.GetURL();
 	}
 
 	
