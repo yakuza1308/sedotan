@@ -142,6 +142,10 @@ func (g *GrabService) execService() {
 							"data": doc,
 						})
 
+						if g.DestDbox[key].Desttype == "mongo" {
+							delete(doc, "_id")
+						}
+
 						if e != nil {
 							g.ErrorNotes = fmt.Sprintf("[%s-%s] Unable to insert [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e)
 							g.Log.AddLog(g.ErrorNotes, "ERROR")
@@ -157,24 +161,25 @@ func (g *GrabService) execService() {
 
 					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished with %d record fetch", g.Name, key, xN), "INFO")
 
-					//ADD History
-					recfile := g.AddRecHistory(docs)
-					historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
-						Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", recfile)
-					if g.LastGrabStat {
-						historyservice.Set("grabstatus", "SUCCESS")
-					}
+					if g.HistoryPath != "" && g.HistoryRecPath != "" {
+						recfile := g.AddRecHistory(key, docs)
+						historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
+							Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", recfile)
+						if g.LastGrabStat {
+							historyservice.Set("grabstatus", "SUCCESS")
+						}
 
-					g.AddHistory(historyservice)
+						g.AddHistory(historyservice)
+					}
 				}
 			}
 		}
 	}(g)
 }
 
-func (g *GrabService) AddRecHistory(docs []toolkit.M) string {
+func (g *GrabService) AddRecHistory(key string, docs []toolkit.M) string {
 	var config = map[string]interface{}{"useheader": true, "delimiter": ",", "newfile": true}
-	file := fmt.Sprintf("%s%s-%s.csv", g.HistoryRecPath, g.Name, cast.Date2String(time.Now(), "YYYYMMddHHmmss"))
+	file := fmt.Sprintf("%s%s.%s-%s.csv", g.HistoryRecPath, g.Name, key, cast.Date2String(time.Now(), "YYYYMMddHHmmss"))
 	ci := &dbox.ConnectionInfo{file, "", "", "", config}
 	c, e := dbox.NewConnection("csv", ci)
 	if e != nil {

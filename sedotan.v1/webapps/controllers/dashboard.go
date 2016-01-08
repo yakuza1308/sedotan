@@ -53,7 +53,7 @@ func (a *DashboardController) Griddashboard(k *knot.WebContext) interface{} {
 		return e
 	}
 	defer c.Close()
-	csr, e := c.NewQuery().Select("nameid", "url", "grabinterval", "intervaltype").Cursor(nil)
+	csr, e := c.NewQuery().Select("nameid", "url", "grabinterval", "intervaltype", "datasettings").Cursor(nil)
 	defer csr.Close()
 	ds, e := csr.Fetch(nil, 0, false)
 
