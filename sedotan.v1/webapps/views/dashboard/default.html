@@ -362,11 +362,12 @@ ViewData.Prepare = function(datasettingname){
     var columnsettings = data.columnsettings;
     var series = [];
     for(var i in columnsettings){
+        var field = columnsettings[i].alias.replace(/ /g, "_");
         var s = {
-            field:columnsettings[i].alias,//'col'+i,
+            field:field,
             title:columnsettings[i].alias
         }
-        series.push(s)
+        series.push(s);
     }
     $("#DataResult").html("");
     $("#DataResult").kendoGrid({
@@ -398,8 +399,9 @@ Config.ViewData = function(datasettingname,id){
     }else{
         obj.kendoWindow({
             title: "View Data",
+            actions: [ "Maximize","Close" ],
             modal: true,
-            resizable: false,
+            resizable: true,
             width: 600,
             heigt:350,
         });
@@ -415,6 +417,12 @@ Config.ViewData = function(datasettingname,id){
         useheader:true,
     }
     ajaxPost(url,parm,function(res){
+        for(var i in res){
+            for(var x in res[i]){
+                var field = x.replace(/ /g, "_");
+                res[i][field] = res[i][x];
+            }
+        }
         ViewData.Processing(false);
         ViewData.Fetch(res);
     },
