@@ -33,7 +33,7 @@ var (
 		return d + "/../"
 	}()
 
-	filename       = wd + "data\\config.json"
+	filename       = wd + "data\\Config\\config.json"
 	historyPath    = wd + "data\\history\\"
 	historyRecPath = wd + "\\data\\HistoryRec\\"
 	grabs          *sdt.GrabService
