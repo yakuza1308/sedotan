@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	filename = wd + "data\\config.json"
+	filename = wd + "data\\Config\\config.json"
 )
 
 type DashboardController struct {
