@@ -164,13 +164,15 @@ func (g *GrabService) execService() {
 					if g.HistoryPath != "" && g.HistoryRecPath != "" {
 						recfile := g.AddRecHistory(key, docs)
 						historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
-							Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", recfile)
-						if g.LastGrabStat {
-							historyservice.Set("grabstatus", "SUCCESS")
-						}
-
+							Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "SUCCESS").Set("recfile", recfile)
 						g.AddHistory(historyservice)
 					}
+				}
+			} else {
+				if g.HistoryPath != "" {
+					historyservice := toolkit.M{}.Set("datasettingname", "-").Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
+						Set("rowsaved", 0).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", "")
+					g.AddHistory(historyservice)
 				}
 			}
 		}

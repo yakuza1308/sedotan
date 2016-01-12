@@ -72,6 +72,10 @@ func (ds *CollectionSetting) Column(i int, column *GrabColumn) *GrabColumn {
 	return column
 }
 
+func (ds *DataSetting) SetFilterCond(filter toolkit.M) {
+	ds.FilterCond = filter
+}
+
 func (g *GetDatabase) ResultFromDatabase(dataSettingId string, out interface{}) error {
 
 	c, e := dbox.NewConnection(g.desttype, &g.ConnectionInfo)
