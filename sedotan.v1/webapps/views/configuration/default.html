@@ -55,13 +55,37 @@ iframe{
 	function ConditionBase(){
 		var self = this;
 		self.column = ko.observable("");
+		self.operation = ko.observable("$eq");
 		self.value = ko.observable("");
+		self.value.subscribe(function(newVal){
+			var column = self.column();
+			if(column=="" && newVal != ""){
+				alert("Please select column first and then input the value.");
+				self.value("");
+				return false;
+			}
+			if(column!==""){
+				var ActiveData = Config.ActiveData();
+				var columnsettings = Config.datasettings()[ActiveData].columnsettings();
+				var format = Enumerable.From(columnsettings).Where(function(x){return x.alias()==column}).FirstOrDefault().valuetype();
+				if(format!=="string" && format!=="date" && isNaN(newVal)){
+					alert("Make sure the value in "+format+" format.");
+					self.value("");
+					return false;
+				}
+				else if(format=="integer" && newVal.indexOf(".") >= 0 ){
+					self.value(newVal.substr(0,newVal.indexOf(".")));
+					return false;
+				}
+			}
+		})
 		return self;
 	}
 	function ColumnBase(){
 		var self = this;
 		self.index = ko.observable(0);
 		self.alias = ko.observable("");
+		self.valuetype = ko.observable("string");
 		self.selector = ko.observable("");
 		return self;
 	}
@@ -70,8 +94,8 @@ iframe{
 		self.name = ko.observable("");
 		self.rowselector = ko.observable("");
 		self.columnsettings = ko.observableArray([]);
-		self.rowdeletecond = ko.observable("");
-		self.rowdeletelist =  ko.observableArray([]);
+		self.filtercond = ko.observable("");
+		self.conditionlist =  ko.observableArray([]);
 		self.desttype = ko.observable("csv");
 		self.connectioninfo = {
 			host:ko.observable(""),
@@ -82,11 +106,11 @@ iframe{
 				delimiter:ko.observable(","),
 			},
 		};
-		self.rowdeletecond.subscribe(function(newVal){
+		self.filtercond.subscribe(function(newVal){
 			if(newVal==""){
-				self.rowdeletelist([]);
-			}else if(self.rowdeletelist().length==0){
-				self.rowdeletelist.push(new ConditionBase())
+				self.conditionlist([]);
+			}else if(self.conditionlist().length==0){
+				self.conditionlist.push(new ConditionBase())
 			}
 		})
 		return self; 
@@ -95,10 +119,11 @@ iframe{
 		Data:ko.observableArray([]),
 		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
-		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
+		url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
 		// url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
-		url:ko.observable(""),
+		// url:ko.observable(""),
 		nameid:ko.observable(""),
+		// calltype:ko.observable("POST"),
 		calltype:ko.observable("GET"),
 		parameter:ko.observable(""),
 		grabconf:{
@@ -116,6 +141,16 @@ iframe{
 		},
 
 		// Data Source
+		operationcondList:ko.observableArray([
+				{Id:"$eq",Title:"EQ ( == )"},
+				{Id:"$ne",Title:"NE ( != )"},
+				{Id:"$gt",Title:"GT ( > )"},
+				{Id:"$gte",Title:"GTE ( >= )"},
+				{Id:"$lt",Title:"LT ( < )"},
+				{Id:"$lte",Title:"LTE ( <= )"},
+				{Id:"$regex",Title:"Contains"},
+				{Id:"$notcontains",Title:"Not Contains"},
+			]),
 		operatorList:ko.observableArray([
 				{Id:"",Title:"-"},
 				{Id:"$and",Title:"AND"},
@@ -123,6 +158,7 @@ iframe{
 				{Id:"$nand",Title:"NAND"},
 				{Id:"$nor",Title:"NOR"},
 			]),
+		valuetypeList:ko.observableArray(["string","float","integer","date"]),
 		calltypeList:ko.observableArray(["GET","POST"]),
 		intervalList:ko.observableArray(["seconds","minutes","hours"]),
 		sourcetypeList:ko.observableArray(["SourceType_Http"]),
@@ -183,7 +219,7 @@ iframe{
 	</div>
 	<br/>
 	<div class="row"  data-bind="visible:isFormActive()">
-		<div class="col-md-3" id="sidebar" data-bind="visible:isURLSet()">
+		<div class="col-md-4" id="sidebar" data-bind="visible:isURLSet()">
 			<!-- Sidebar -->
 			
 			<div class="row">
@@ -195,7 +231,7 @@ iframe{
 			</div>
 			<div class="row" data-bind="visible:isSelecting()">
 				<div class="col-md-12 align-right">
-					<button class="btn btn-xs btn-success" data-bind="click:CompleteSelection"><span class="fa fa-check-circle"></span> Done</button>&nbsp;
+					<button class="btn btn-xs btn-success" data-bind="click:CompleteSelection"><span class="fa fa-operation-circle"></span> Done</button>&nbsp;
 					<button class="btn btn-xs btn-warning" data-bind="click:CancelSelection"><span class="fa fa-mail-reply-all"></span> Cancel</button>
 				</div>
 				<div class="col-md-12">&nbsp;</div>
@@ -328,13 +364,17 @@ iframe{
 							<div class="col-md-12">
 								<table width="100%" class="table">
 									<tr>
-										<th width="35%">Alias</th>
+										<th width="30%">Alias</th>
+										<th width="25%">Type</th>
 										<th>Selector</th>
 									</tr>
 									<tbody data-bind="foreach:columnsettings">
 										<tr>
 											<td>
 												<input type="text" class="form-control input-sm" data-bind="value:alias"/>
+											</td>
+											<td>
+												<input type="text" style="width:100%" data-bind="kendoDropDownList:{value:valuetype,data:Config.valuetypeList}" />
 											</td>
 											<td>
 												<div class="input-group input-group-sm">
@@ -356,23 +396,27 @@ iframe{
 						</div>
 						<div class="row">
 							<label class="col-md-5">
-								Row Delete Cond.
+								Filter Cond.
 							</label>
 							<div class="col-md-7">
-								<input type="text" data-bind="kendoDropDownList:{value:rowdeletecond,data:$parent.operatorList,dataTextField: 'Title', dataValueField: 'Id'}" />
+								<input type="text" data-bind="kendoDropDownList:{value:filtercond,data:$parent.operatorList,dataTextField: 'Title', dataValueField: 'Id'}" />
 							</div>
 						</div>
-						<div class="row" data-bind="visible:rowdeletecond()!==''">
+						<div class="row" data-bind="visible:filtercond()!==''">
 							<div class="col-md-12">
 								<table width="100%" class="table no-margin-bottom">
 									<tr>
-										<th width="35%">Column</th>
+										<th width="30%">Column</th>
+										<th width="25%">Operation</th>
 										<th>Value</th>
 									</tr>
-									<tbody data-bind="foreach:rowdeletelist">
+									<tbody data-bind="foreach:conditionlist">
 										<tr>
 											<td>
-												<input type="text" class="form-control input-sm" data-bind="value:column"/>
+												<input type="text" data-bind="kendoDropDownList:{value:column,data:$parent.columnsettings,dataTextField: 'alias', dataValueField: 'alias'}" style="width:100%"/>
+											</td>
+											<td>
+												<input type="text" data-bind="kendoDropDownList:{value:operation,data:Config.operationcondList,dataTextField: 'Title', dataValueField: 'Id'}" style="width:100%"/>
 											</td>
 											<td>
 												<div class="input-group input-group-sm">
@@ -393,6 +437,7 @@ iframe{
 									</button>
 								</div>
 							</div>
+							<div class="col-md-12">&nbsp;</div>
 						</div>
 
 						<div class="row">
@@ -531,7 +576,7 @@ iframe{
 				</div>
 			</div>
 		</div>
-		<div class="col-md-9" data-bind="attr:{'class':isURLSet()?'col-md-9':'col-md-12'}">
+		<div class="col-md-8" data-bind="attr:{'class':isURLSet()?'col-md-8':'col-md-12'}">
 			<div data-bind="visible:ProcessingURL()" class="align-center">
 		        <h4>Please wait while processing your request</h4>
 		        <img src="/static/img/loader.gif" alt="Loading..." />
@@ -552,6 +597,21 @@ iframe{
 	</div>
 </div>
 <script type="text/javascript">
+// 	Config.CheckFormat = function(index){
+// 		var ActiveData = Config.ActiveData();
+// 		var columnsettings = Config.datasettings()[ActiveData].columnsettings();
+// 		var condition = Config.datasettings()[ActiveData].conditionlist()[index];
+// 		console.log(condition.value());
+// 		var format = Enumerable.From(columnsettings).Where(function(x){return x.alias()==condition.column()}).FirstOrDefault().valuetype();
+// 		if(format!=="string"&&format!=="date"&& isNaN(condition.value())){
+// 			var value = condition.value();
+// 			var len = value.length;
+// 			console.log(value);
+// 			// condition.value(100);
+// // value.substr(0,len)
+// 			return false;
+// 		}
+// 	}
 	Config.CheckNameID = function(){
 		var nameid = Config.nameid();
 		if(nameid.trim()==""){
@@ -566,8 +626,8 @@ iframe{
 	}
 	Config.RemoveCondition = function(index){
 		var ActiveData = Config.ActiveData();
-		var data = Config.datasettings()[ActiveData].rowdeletelist()[index];
-		Config.datasettings()[ActiveData].rowdeletelist.remove(data);
+		var data = Config.datasettings()[ActiveData].conditionlist()[index];
+		Config.datasettings()[ActiveData].conditionlist.remove(data);
 	}
 	Config.RemoveColumnSettings = function(index){
 		var ActiveData = Config.ActiveData();
@@ -630,7 +690,7 @@ iframe{
 		Config.datasettings()[index].columnsettings.push(new ColumnBase());
 	}
 	Config.AddCondition = function(index){
-		Config.datasettings()[index].rowdeletelist.push(new ConditionBase());	
+		Config.datasettings()[index].conditionlist.push(new ConditionBase());	
 	}
 	Config.Reset = function(){
 		Config.url("");
@@ -801,6 +861,7 @@ iframe{
 		delete data["isFormActive"]
 		delete data["isURLSet"]
 		
+		delete data["valuetypeList"]
 		delete data["operatorList"]
 		delete data["calltypeList"]
 		delete data["intervalList"]
@@ -837,26 +898,41 @@ iframe{
 				default:
 					break;
 			}
-			var rowdeletecond = data.datasettings()[i].rowdeletecond();
-			if(rowdeletecond==""){
-				delete data.datasettings()[i]["rowdeletelist"]
-				delete data.datasettings()[i]["rowdeletecond"]
+			var filtercond = data.datasettings()[i].filtercond();
+			if(filtercond==""){
+				delete data.datasettings()[i]["conditionlist"]
+				delete data.datasettings()[i]["filtercond"]
 			}else{
 				var condition = {}
-				condition[rowdeletecond] = [];
-				var rowdeletelist = data.datasettings()[i].rowdeletelist();
-				for(var r in rowdeletelist){
+				condition[filtercond] = [];
+				var conditionlist = data.datasettings()[i].conditionlist();
+				var columnsettings = data.datasettings()[i].columnsettings();
+				for(var r in conditionlist){
 					var obj = {};
-					var col = rowdeletelist[r].column();
-					var val = rowdeletelist[r].value();
-					obj[col] = val
-					condition[rowdeletecond].push(obj);
+					var col = conditionlist[r].column();
+					obj[col] = {};
+					var format = Enumerable.From(columnsettings).Where(function(x){return x.alias() == col}).FirstOrDefault().valuetype();
+					var operation = conditionlist[r].operation();
+					var val = conditionlist[r].value();
+					switch (format){
+						case "integer":
+							obj[col][operation] = parseInt(val);
+							break;
+						case "float":
+							obj[col][operation] = parseFloat(val);
+							break;
+						default:
+							obj[col][operation] = val;
+							break;
+					}
+					condition[filtercond].push(obj);
 				} 
-				data.datasettings()[i].rowdeletecond(condition);
-				delete data.datasettings()[i]["rowdeletelist"]
+				data.datasettings()[i].filtercond(condition);
+				delete data.datasettings()[i]["conditionlist"]
 			}
 		}
-		// console.log(data);
+		console.log(data);
+		return false;
 		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
 		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
 		data.logconf.logpath("data/logs/"+filename+"/");
