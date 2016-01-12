@@ -115,7 +115,6 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		grabConfig.LoginUrl = grabDataConf["loginurl"].(string)   //"http://localhost:8000/login"
 		grabConfig.LogoutUrl = grabDataConf["logouturl"].(string) //"http://localhost:8000/logout"
 
-		fmt.Println("login>>", grabDataConf["loginvalues"].(map[string]interface{})["name"].(string))
 		grabConfig.LoginValues = toolkit.M{}.
 			Set("name", grabDataConf["loginvalues"].(map[string]interface{})["name"].(string)).
 			Set("password", grabDataConf["loginvalues"].(map[string]interface{})["password"].(string))
