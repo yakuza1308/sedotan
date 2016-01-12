@@ -107,6 +107,21 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		grabConfig.SetFormValues(dataurl)
 	}
 
+	grabDataConf, _ := toolkit.ToM(data["grabconf"])
+
+	isAuthType := grabDataConf.Has("authtype")
+	if isAuthType {
+		grabConfig.AuthType = grabDataConf["authtype"].(string)
+		grabConfig.LoginUrl = grabDataConf["loginurl"].(string)   //"http://localhost:8000/login"
+		grabConfig.LogoutUrl = grabDataConf["logouturl"].(string) //"http://localhost:8000/logout"
+
+		fmt.Println("login>>", grabDataConf["loginvalues"].(map[string]interface{})["name"].(string))
+		grabConfig.LoginValues = toolkit.M{}.
+			Set("name", grabDataConf["loginvalues"].(map[string]interface{})["name"].(string)).
+			Set("password", grabDataConf["loginvalues"].(map[string]interface{})["password"].(string))
+
+	}
+
 	xGrabService.ServGrabber = sdt.NewGrabber(xGrabService.Url, data["calltype"].(string), &grabConfig)
 
 	logconfToMap, _ := toolkit.ToM(data["logconf"])
@@ -153,7 +168,9 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 					}
 				}
 			}
-			tempDataSetting.RowDeleteCond = toolkit.M{}.Set(condition, orCondition)
+			// tempDataSetting.RowDeleteCond = toolkit.M{}.Set(condition, orCondition)
+			tempFilterCond := toolkit.M{}.Set(condition, orCondition)
+			tempDataSetting.SetFilterCond(tempFilterCond)
 		}
 
 		xGrabService.ServGrabber.DataSettings[dataToMap["name"].(string)] = &tempDataSetting //DATA01 use name in datasettings

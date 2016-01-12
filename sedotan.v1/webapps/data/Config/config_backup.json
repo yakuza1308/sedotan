@@ -117,7 +117,7 @@
     "nameid": "irondcecomcn",
     "url": "http://www.dce.com.cn/PublicWeb/MainServlet",
     "calltype": "POST",
-    "grabconfig": 
+    "grabconf": 
       {
         "formvalues":
           {
@@ -229,7 +229,7 @@
     "nameid": "localtest",
     "url": "http://localhost:8000",
     "calltype": "POST",
-    "grabconfig": 
+    "grabconf": 
       {
         "authtype":"session",
         "loginurl":"http://localhost:8000/login",
