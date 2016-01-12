@@ -162,7 +162,7 @@
             }
           ]
         },
-        "rowselector": "table .table tbody"
+        "rowselector": "table .table tbody tr"
       }
     ],
     "grabconf": {

@@ -45,9 +45,10 @@ type Config struct {
 }
 
 type DataSetting struct {
-	RowSelector    string
-	RowDeleteCond  toolkit.M
-	RowIncludeCond toolkit.M
+	RowSelector string
+	FilterCond  toolkit.M
+	// RowDeleteCond  toolkit.M
+	// RowIncludeCond toolkit.M
 	ColumnSettings []*GrabColumn
 }
 
@@ -91,7 +92,7 @@ func (g *Grabber) GetConfig() (toolkit.M, error) {
 				// time.Now(), Date2String(YYYYMMDD) = time.Now().Date2String(YYYYMMDD)
 				format := ""
 				if strings.Contains(val.(string), "Date2String") {
-					format = strings.Replace(strings.Replace(val.(string), "time.Now().Date2String(", "", -1), ")", "", -1)
+					format = strings.Replace(strings.Replace(val.(string), "Date2String(time.Now(),", "", -1), ")", "", -1)
 				}
 
 				parm[key] = cast.Date2String(time.Now(), format)
@@ -125,6 +126,10 @@ func (ds *DataSetting) Column(i int, column *GrabColumn) *GrabColumn {
 		return nil
 	}
 	return column
+}
+
+func (ds *DataSetting) SetFilterCond(filter toolkit.M) {
+	ds.FilterCond = filter
 }
 
 func (g *Grabber) Data() interface{} {
@@ -216,7 +221,7 @@ func (g *Grabber) ResultFromHtml(dataSettingId string, out interface{}) error {
 			m.Set(columnId, value)
 		}
 
-		if !(g.Config.DataSettings[dataSettingId].getDeleteCondition(m)) {
+		if g.Config.DataSettings[dataSettingId].getCondition(m) {
 			ms = append(ms, m)
 		}
 	}
@@ -226,27 +231,18 @@ func (g *Grabber) ResultFromHtml(dataSettingId string, out interface{}) error {
 	return nil
 }
 
-func (ds *DataSetting) getDeleteCondition(dataCheck toolkit.M) bool {
-	resBool := false
+func (ds *DataSetting) getCondition(dataCheck toolkit.M) bool {
+	resBool := true
 
-	if len(ds.RowDeleteCond) > 0 {
-		resBool = foundCondition(dataCheck, ds.RowDeleteCond)
-	}
-
-	if !resBool && len(ds.RowIncludeCond) > 0 {
-		resBool = true
-		iResBool := true
-		iResBool = foundCondition(dataCheck, ds.RowIncludeCond)
-		if iResBool {
-			resBool = false
-		}
+	if len(ds.FilterCond) > 0 {
+		resBool = foundCondition(dataCheck, ds.FilterCond)
 	}
 
 	return resBool
 }
 
 func foundCondition(dataCheck toolkit.M, cond toolkit.M) bool {
-	resBool := true
+	resBool := false
 
 	for key, val := range cond {
 		if key == "$and" || key == "$or" {
@@ -259,7 +255,11 @@ func foundCondition(dataCheck toolkit.M, cond toolkit.M) bool {
 
 				xResBool := foundCondition(dataCheck, mVal)
 				if key == "$and" {
-					resBool = resBool && xResBool
+					if i == 0 {
+						resBool = xResBool
+					} else {
+						resBool = resBool && xResBool
+					}
 				} else {
 					if i == 0 {
 						resBool = xResBool
@@ -273,31 +273,35 @@ func foundCondition(dataCheck toolkit.M, cond toolkit.M) bool {
 				mVal := val.(map[string]interface{})
 				tomVal, _ := toolkit.ToM(mVal)
 				switch {
+				case tomVal.Has("$eq"):
+					if tomVal["$eq"].(string) == dataCheck.Get(key, "").(string) {
+						resBool = true
+					}
 				case tomVal.Has("$ne"):
-					if tomVal["$ne"].(string) == dataCheck.Get(key, "").(string) {
-						resBool = false
+					if tomVal["$ne"].(string) != dataCheck.Get(key, "").(string) {
+						resBool = true
 					}
 				case tomVal.Has("$regex"):
 					resBool, _ = regexp.MatchString(tomVal["$regex"].(string), dataCheck.Get(key, "").(string))
 				case tomVal.Has("$gt"):
-					if tomVal["$gt"].(string) >= dataCheck.Get(key, "").(string) {
-						resBool = false
+					if tomVal["$gt"].(string) > dataCheck.Get(key, "").(string) {
+						resBool = true
 					}
 				case tomVal.Has("$gte"):
-					if tomVal["$gte"].(string) > dataCheck.Get(key, "").(string) {
-						resBool = false
+					if tomVal["$gte"].(string) >= dataCheck.Get(key, "").(string) {
+						resBool = true
 					}
 				case tomVal.Has("$lt"):
-					if tomVal["$lt"].(string) <= dataCheck.Get(key, "").(string) {
-						resBool = false
+					if tomVal["$lt"].(string) < dataCheck.Get(key, "").(string) {
+						resBool = true
 					}
 				case tomVal.Has("$lte"):
-					if tomVal["$lte"].(string) < dataCheck.Get(key, "").(string) {
-						resBool = false
+					if tomVal["$lte"].(string) <= dataCheck.Get(key, "").(string) {
+						resBool = true
 					}
 				}
 			} else if reflect.ValueOf(val).Kind() == reflect.String && val != dataCheck.Get(key, "").(string) {
-				resBool = false
+				resBool = true
 			}
 		}
 	}

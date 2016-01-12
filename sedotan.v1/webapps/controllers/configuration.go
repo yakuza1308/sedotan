@@ -64,7 +64,7 @@ func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
 		fmt.Println("Found : ", e)
 	}
 
-	filename = wd + "data\\config.json"
+	filename = wd + "data\\Config\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
@@ -95,7 +95,7 @@ func (a *ConfigurationController) Delete(k *knot.WebContext) interface{} {
 	e := k.GetPayload(&d)
 	k.Config.OutputType = knot.OutputJson
 
-	filename = wd + "data\\config.json"
+	filename = wd + "data\\Config\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
@@ -155,7 +155,7 @@ func (a *ConfigurationController) TestingDBOX(k *knot.WebContext) interface{} {
 func (a *ConfigurationController) GetData(k *knot.WebContext) interface{} {
 	k.Config.OutputType = knot.OutputJson
 
-	filename := wd + "data\\config.json"
+	filename := wd + "data\\Config\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()

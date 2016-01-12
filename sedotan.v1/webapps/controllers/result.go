@@ -35,7 +35,7 @@ func (a *ResultController) P(k *knot.WebContext) interface{} {
 func (a *ResultController) GetData(k *knot.WebContext) interface{} {
 	k.Config.OutputType = knot.OutputJson
 
-	filename := wd + "data\\config.json"
+	filename := wd + "data\\Config\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
