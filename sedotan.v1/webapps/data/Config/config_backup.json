@@ -1,0 +1,479 @@
+[
+  {
+    "nameid": "goldshfecom",
+    "url": "http://www.shfe.com.cn/en/products/Gold/",
+    "calltype": "GET",
+    "intervaltype": "seconds",
+    "grabinterval": 300,
+    "timeoutinterval": 5,
+    "sourcetype": "SourceType_Http",
+    "logconf": 
+      {
+        "logpath": "E:\\data\\vale\\log",
+        "filename": "LOG-GRABSHFE-%s",
+        "filepattern": "20060102"
+      },
+    "datasettings": 
+      [
+        {
+          "name": "GoldTab01",
+          "rowselector": "#tab_conbox li:nth-child(1) .sjtable .listshuju tbody tr",
+          "columnsettings": 
+            [
+              {
+                "index": 0,
+                "alias": "Code",
+                "selector": "td:nth-child(1)"
+              },
+              {
+                "index": 0,
+                "alias": "ListingDate",
+                "selector": "td:nth-child(2)"
+              },
+              {
+                "index": 0,
+                "alias": "ExpirationDate",
+                "selector": "td:nth-child(3)"
+              },
+              {
+                "index": 0,
+                "alias": "FirstDeliveryDay",
+                "selector": "td:nth-child(4)"
+              },
+              {
+                "index": 0,
+                "alias": "LastDeliveryDay",
+                "selector": "td:nth-child(5)"
+              },
+              {
+                "index": 0,
+                "alias": "BanchmarkPrice",
+                "selector": "td:nth-child(6)"
+              }
+            ],
+          "desttype": "mongo",
+          "connectioninfo": 
+            {
+              "host": "localhost:27017",
+              "database": "valegrab",
+              "collection": "shfegold"
+            }
+        },
+        {
+          "name": "GoldTab02",
+          "rowselector": "#tab_conbox li:nth-child(2) .sjtable .listshuju tbody tr",
+          "columnsettings": 
+            [
+              {
+                "index": 0,
+                "alias": "Code",
+                "selector": "td:nth-child(1)"
+              },
+              {
+                "index": 0,
+                "alias": "LongSpeculation",
+                "selector": "td:nth-child(2)"
+              },
+              {
+                "index": 0,
+                "alias": "ShortSpeculation",
+                "selector": "td:nth-child(3)"
+              },
+              {
+                "index": 0,
+                "alias": "LongHedging",
+                "selector": "td:nth-child(4)"
+              },
+              {
+                "index": 0,
+                "alias": "ShortHedging",
+                "selector": "td:nth-child(5)"
+              },
+              {
+                "index": 0,
+                "alias": "LimitUp",
+                "selector": "td:nth-child(6)"
+              },
+              {
+                "index": 0,
+                "alias": "LimitDown",
+                "selector": "td:nth-child(7)"
+              }
+            ],
+          "desttype": "csv",
+          "connectioninfo": 
+            {
+              "host": "E:\\data\\vale\\Data_Grab.csv",
+              "settings":
+                {
+                  "useheader": true, 
+                  "delimiter": ","
+                }
+            }
+        }
+      ]
+  },
+  {
+    "nameid": "irondcecomcn",
+    "url": "http://www.dce.com.cn/PublicWeb/MainServlet",
+    "calltype": "POST",
+    "grabconfig": 
+      {
+        "formvalues":
+          {
+            "Pu00231_Input.trade_date": "20160105",
+            "Pu00231_Input.variety": "i",
+            "Pu00231_Input.trade_type": "0",
+            "Submit": "Go",
+            "action": "Pu00231_result"
+          }
+      },
+    "intervaltype": "seconds",
+    "grabinterval": 300,
+    "timeoutinterval": 5,
+    "sourcetype": "SourceType_Http",
+    "logconf": 
+      {
+        "logpath": "E:\\data\\vale\\log",
+        "filename": "LOG-GRABDCE-%s",
+        "filepattern": "YYYYMMDD"
+      },
+    "datasettings": 
+      [
+        {
+          "name": "Iron01",
+          "rowselector": "table .table tbody tr",
+          "columnsettings": 
+            [
+              {
+                "index": 0,
+                "alias": "Contract",
+                "selector": "td:nth-child(1)"
+              },
+              {
+                "index": 0,
+                "alias": "Open",
+                "selector": "td:nth-child(2)"
+              },
+              {
+                "index": 0,
+                "alias": "High",
+                "selector": "td:nth-child(3)"
+              },
+              {
+                "index": 0,
+                "alias": "Low",
+                "selector": "td:nth-child(4)"
+              },
+              {
+                "index": 0,
+                "alias": "Close",
+                "selector": "td:nth-child(5)"
+              },
+              {
+                "index": 0,
+                "alias": "Prev Settle",
+                "selector": "td:nth-child(6)"
+              },
+              {
+                "index": 0,
+                "alias": "Settle",
+                "selector": "td:nth-child(7)"
+              },
+              {
+                "index": 0,
+                "alias": "Chg",
+                "selector": "td:nth-child(8)"
+              },
+              {
+                "index": 0,
+                "alias": "Volume",
+                "selector": "td:nth-child(9)"
+              },
+              {
+                "index": 0,
+                "alias": "OI",
+                "selector": "td:nth-child(10)"
+              },
+              {
+                "index": 0,
+                "alias": "OI Chg",
+                "selector": "td:nth-child(11)"
+              },
+              {
+                "index": 0,
+                "alias": "Turnover",
+                "selector": "td:nth-child(12)"
+              }
+            ],
+          "rowdeletecond":
+            { 
+              "$or":
+                [
+                  {"Contract": "Contract"},
+                  {"Contract": "Iron Ore Subtotal"},
+                  {"Contract": "Total"}
+                ]
+            },
+          "desttype": "mongo",
+          "connectioninfo": 
+            {
+              "host": "localhost:27017",
+              "database": "valegrab",
+              "collection": "irondcecom"
+            }
+        }
+      ]
+  },
+  {
+    "nameid": "localtest",
+    "url": "http://localhost:8000",
+    "calltype": "POST",
+    "grabconfig": 
+      {
+        "authtype":"session",
+        "loginurl":"http://localhost:8000/login",
+        "logouturl":"http://localhost:8000/logout",
+        "loginvalues":
+          {
+            "name": "alip",
+            "password": "test"
+          }
+      },
+    "intervaltype": "seconds",
+    "grabinterval": 300,
+    "timeoutinterval": 5,
+    "sourcetype": "SourceType_Http",
+    "logconf": 
+      {
+        "logpath": "E:\\data\\vale\\log",
+        "filename": "LOG-TEST-%s",
+        "filepattern": "20060102"
+      },
+    "datasettings": 
+      [
+        {
+          "name": "TestData",
+          "rowselector": "table tr",
+          "columnsettings": 
+            [
+              {
+                "index": 0,
+                "alias": "Number",
+                "selector": "td:nth-child(1)"
+              },
+              {
+                "index": 0,
+                "alias": "FirstName",
+                "selector": "td:nth-child(2)"
+              },
+              {
+                "index": 0,
+                "alias": "LastName",
+                "selector": "td:nth-child(3)"
+              },
+              {
+                "index": 0,
+                "alias": "Points",
+                "selector": "td:nth-child(4)"
+              }
+            ],
+          "rowdeletecond":
+            { 
+              "FirstName": ""
+            },
+          "desttype": "csv",
+          "connectioninfo": 
+            {
+              "host": "E:\\data\\vale\\Data_GrabLocal.csv",
+              "settings":
+                {
+                  "useheader": true, 
+                  "delimiter": ","
+                }
+            }
+        }
+      ]
+  },
+  {
+    "nameid": "shferb1605",
+    "url": "http://www.shfe.com.cn/en/statements/delaymarket_all_en.html",
+    "calltype": "GET",
+    "intervaltype": "seconds",
+    "grabinterval": 300,
+    "timeoutinterval": 5,
+    "sourcetype": "SourceType_Http",
+    "logconf": 
+      {
+        "logpath": "E:\\data\\vale\\log",
+        "filename": "LOG-SHFERB1605-%s",
+        "filepattern": "20060102"
+      },
+    "datasettings": 
+      [
+        {
+          "name": "shferb1605",
+          "rowselector": ".mytable tbody tr",
+          "columnsettings": 
+            [
+              {
+                "index": 0,
+                "alias": "Contract",
+                "selector": "td:nth-child(1)"
+              },
+              {
+                "index": 0,
+                "alias": "Last",
+                "selector": "td:nth-child(2)"
+              },
+              {
+                "index": 0,
+                "alias": "Chg",
+                "selector": "td:nth-child(3)"
+              },
+              {
+                "index": 0,
+                "alias": "Open Interest",
+                "selector": "td:nth-child(4)"
+              },
+              {
+                "index": 0,
+                "alias": "Volume",
+                "selector": "td:nth-child(5)"
+              },
+              {
+                "index": 0,
+                "alias": "Turnover",
+                "selector": "td:nth-child(6)"
+              },
+              {
+                "index": 0,
+                "alias": "Bid-Ask",
+                "selector": "td:nth-child(7)"
+              },
+              {
+                "index": 0,
+                "alias": "Pre-clear",
+                "selector": "td:nth-child(8)"
+              },
+              {
+                "index": 0,
+                "alias": "Open",
+                "selector": "td:nth-child(9)"
+              },
+              {
+                "index": 0,
+                "alias": "Low",
+                "selector": "td:nth-child(10)"
+              },
+              {
+                "index": 0,
+                "alias": "High",
+                "selector": "td:nth-child(11)"
+              }
+            ],
+          "rowincludecond":
+            { 
+              "Contract": "rb1605"
+            },
+          "desttype": "csv",
+          "connectioninfo": 
+            {
+              "host": "E:\\data\\vale\\Data_GrabRb1605.csv",
+              "settings":
+                {
+                  "useheader": true, 
+                  "delimiter": ","
+                }
+            }
+        }
+      ]
+  },
+  {
+    "nameid": "dceyyk16",
+    "url": "http://www.barchart.com/futures/exchanges.php?exch=dce",
+    "calltype": "GET",
+    "intervaltype": "seconds",
+    "grabinterval": 300,
+    "timeoutinterval": 5,
+    "sourcetype": "SourceType_Http",
+    "logconf": 
+      {
+        "logpath": "E:\\data\\vale\\log",
+        "filename": "LOG-DCEYYK16-%s",
+        "filepattern": "20060102"
+      },
+    "datasettings": 
+      [
+        {
+          "name": "dceyyk16",
+          "rowselector": ".mpbox table tr",
+          "columnsettings": 
+            [
+              {
+                "index": 0,
+                "alias": "Contract",
+                "selector": "td:nth-child(1)"
+              },
+              {
+                "index": 0,
+                "alias": "Last",
+                "selector": "td:nth-child(2)"
+              },
+              {
+                "index": 0,
+                "alias": "Change",
+                "selector": "td:nth-child(3)"
+              },
+              {
+                "index": 0,
+                "alias": "Open Interest",
+                "selector": "td:nth-child(8)"
+              },
+              {
+                "index": 0,
+                "alias": "Volume",
+                "selector": "td:nth-child(7)"
+              },
+              {
+                "index": 0,
+                "alias": "Open",
+                "selector": "td:nth-child(4)"
+              },
+              {
+                "index": 0,
+                "alias": "Low",
+                "selector": "td:nth-child(6)"
+              },
+              {
+                "index": 0,
+                "alias": "High",
+                "selector": "td:nth-child(5)"
+              },
+              {
+                "index": 0,
+                "alias": "Time",
+                "selector": "td:nth-child(9)"
+              }
+            ],
+          "rowincludecond":
+            { 
+              "Contract": 
+                { 
+                  "$regex": ".*YYK16.*"
+                }
+            },
+          "desttype": "csv",
+          "connectioninfo": 
+            {
+              "host": "E:\\data\\vale\\Data_GrabDCEYYK16.csv",
+              "settings":
+                {
+                  "useheader": true, 
+                  "delimiter": ","
+                }
+            }
+        }
+      ]
+  }
+]
