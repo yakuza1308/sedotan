@@ -131,6 +131,7 @@ iframe{
 		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
 		url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
 		// url:ko.observable(""),
+		temp:ko.observable(""),
 		nameid:ko.observable(""),
 		calltype:ko.observable("GET"),
 		parameter:ko.observable(""),
@@ -152,8 +153,9 @@ iframe{
 		parameterList:ko.observableArray([]),
 		patternList:ko.observableArray([
 				{Id:"",Title:"-"},
-				{Id:"Date.Now()",Title:"Day.Now()"},
-				{Id:"Date.Now(-1)",Title:"Day.Now(-1)"},
+				{Id:"time.Now()",Title:"Now"},
+				{Id:"time.Now()+1",Title:"Now + 1"},
+				// {Id:"time.Now(-1)",Title:"time.Now(-1)"},
 			]),
 		operationcondList:ko.observableArray([
 				{Id:"$eq",Title:"EQ ( == )"},
@@ -598,9 +600,8 @@ iframe{
 							<div class="col-md-7" data-bind="text:desttype"></div>
 						</div>
 						<div class="row">
-							<label class="col-md-5">
-								Host
-							</label>
+							<label class="col-md-5" data-bind="visible:desttype()=='mongo'">Host</label>
+							<label class="col-md-5" data-bind="visible:desttype()!=='mongo'">FileName</label>
 							<div class="col-md-7" data-bind="text:connectioninfo.host"></div>
 						</div>
 						<div class="row" data-bind="visible:desttype()=='mongo'">
@@ -980,11 +981,18 @@ iframe{
 				for(var p in parameterList){
 					var key = parameterList[p].key();
 					var value = parameterList[p].value();
+					var pattern = parameterList[p].pattern();
+					var format = parameterList[p].format();
 					if(key.trim()!==""&&value.trim()!==""){
-						parameter[key] = value.toString();
+						if(pattern!==""){
+							parameter[key] = "Date2String("+pattern+",'"+format+"')"
+						}else{
+							parameter[key] = value.toString();
+						}
 					}
 				}
 			}
+			data.temp({parameter:parameterList});
 			// data.grabconf.data = JSON.parse(data.parameter());
 			data.grabconf.data = parameter;
 
@@ -1042,7 +1050,7 @@ iframe{
 		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
 		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
 		data.logconf.logpath("data/Log/"+filename+"/");
-		data.logconf.filename("LOG-"+filename+"-%s");
+		data.logconf.filename("LOG-"+filename);
 		var url = "{{BaseUrl}}configuration/save";
 		var parm = {
 			Data:ko.mapping.toJSON(data),
@@ -1079,16 +1087,18 @@ iframe{
 		Config.url(data.url);
 		Config.calltype(data.calltype);
 		if(data.calltype=="POST"){
-			var parameter = data.grabconf.data;
+			var parameter = data.temp.parameter;
 			Config.parameterList([]);
 			var i = 0;
 			for(var p in parameter){
 				Config.parameterList.push(new ParameterBase());
-				Config.parameterList()[i].key(p);
-				Config.parameterList()[i].value(parameter[p]);
+				Config.parameterList()[i].key(parameter[p].key);
+				Config.parameterList()[i].value(parameter[p].value);
+				Config.parameterList()[i].pattern(parameter[p].pattern);
+				Config.parameterList()[i].format(parameter[p].format);
 				i++;
 			}
-			// Config.parameter(JSON.stringify(data.grabconf.data));
+			Config.parameter(JSON.stringify(data.grabconf.data));
 		}
 		Config.isURLSet(true);
 		Config.nameid(data.nameid);
