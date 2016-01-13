@@ -109,9 +109,9 @@ func (g *Grabber) GetConfig() (toolkit.M, error) {
 		jar, e := toolkit.HttpGetCookieJar(g.LoginUrl, g.CallType, tConfig)
 		if e != nil {
 			return nil, e
+		} else {
+			retValue.Set("cookie", jar)
 		}
-
-		retValue.Set("cookie", jar)
 	}
 
 	return retValue, nil
