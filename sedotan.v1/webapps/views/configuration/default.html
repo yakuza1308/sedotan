@@ -51,7 +51,16 @@ iframe{
 </style>
 <h1>Configuration</h1><br/>
 <script type="text/javascript">
+	var WorkingDirectory = "{{.data_dir}}";
 	model.PageId("Configuration");
+	function ParameterBase(){
+		var self = this;
+		self.key = ko.observable("");
+		self.value = ko.observable("");
+		self.pattern = ko.observable("");
+		self.format = ko.observable("");
+		return self;
+	}
 	function ConditionBase(){
 		var self = this;
 		self.column = ko.observable("");
@@ -119,11 +128,10 @@ iframe{
 		Data:ko.observableArray([]),
 		isFormActive:ko.observable(false),
 		isURLSet:ko.observable(false),
-		url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
-		// url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
+		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
+		url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
 		// url:ko.observable(""),
 		nameid:ko.observable(""),
-		// calltype:ko.observable("POST"),
 		calltype:ko.observable("GET"),
 		parameter:ko.observable(""),
 		grabconf:{
@@ -141,6 +149,12 @@ iframe{
 		},
 
 		// Data Source
+		parameterList:ko.observableArray([]),
+		patternList:ko.observableArray([
+				{Id:"",Title:"-"},
+				{Id:"Date.Now()",Title:"Day.Now()"},
+				{Id:"Date.Now(-1)",Title:"Day.Now(-1)"},
+			]),
 		operationcondList:ko.observableArray([
 				{Id:"$eq",Title:"EQ ( == )"},
 				{Id:"$ne",Title:"NE ( != )"},
@@ -210,10 +224,56 @@ iframe{
 	</div>
 	<br data-bind="visible:isFormActive()"/>
 	<div class="row" data-bind="visible:isFormActive()">
-		<div class="col-md-12" data-bind="visible:calltype()=='POST'">
+		<!-- <div class="col-md-12" data-bind="visible:calltype()=='POST'">
 			<div class="input-group">
 			  <span class="input-group-addon">Parameter</span>
 			  <input type="text" class="form-control" data-bind="value:parameter" id="inputURL">
+			</div>
+		</div> -->
+		<div class="col-md-12" data-bind="visible:calltype()=='POST'">
+			<div class="row">
+				<label class="col-md-12">Parameter : </label>
+			</div>
+			<div class="row">
+				<div class="col-md-12">
+					<table class="table table-bordered">
+						<thead>
+							<tr>
+								<th width="20%">Key</th>
+								<th>Value</th>
+								<th width="15%">Pattern</th>
+								<th width="20%">Format</th>
+								<th width="50px">&nbsp;</th>
+							</tr>
+						</thead>
+						<tbody data-bind="foreach:parameterList">
+							<tr>
+								<td>
+									<input type="text" data-bind="value:key" class="form-control input-sm"/>
+								</td>
+								<td>
+									<input type="text" data-bind="value:value" class="form-control input-sm"/>
+								</td>
+								<td>
+									<input type="text" data-bind="kendoDropDownList:{value:pattern,data:$parent.patternList,dataTextField: 'Title', dataValueField: 'Id'}" class="form-control input-sm"/>
+								</td>
+								<td>
+									<input type="text" data-bind="value:format,attr:{disabled:pattern()==''?true:false}" class="form-control input-sm"/>
+								</td>
+								<td class="align-center">
+									<button class="btn btn-sm btn-default" data-bind="attr:{onclick:'Config.RemoveParameter('+$index()+')'}">
+										<span class="fa fa-trash"></span>
+									</button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="align-right">
+						<button class="btn btn-xs btn-default" data-bind="click:Config.AddParameter">
+							<span class="fa fa-plus"></span> add parameter
+						</button>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -449,14 +509,21 @@ iframe{
 							</div>
 						</div>
 						<div class="row">
-							<label class="col-md-5">
-								Host
-							</label>
+							<label class="col-md-5" data-bind="visible:desttype()=='mongo'">Host</label>
+							<label class="col-md-5" data-bind="visible:desttype()!=='mongo'">FileName</label>
 							<div class="col-md-7">
-								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.host"/>
+								<div class="input-group input-group-sm" data-bind="visible:desttype()=='mongo'">
+								  <input type="text" class="form-control input-sm" data-bind="value:connectioninfo.host"/>
+								  <span class="input-group-addon">Ex: localhost:27017</span>
+								</div>
+								<div class="input-group input-group-sm" data-bind="visible:desttype()!=='mongo'">
+								   <span class="input-group-addon">data/Output/</span>
+								   <input type="text" class="form-control input-sm" data-bind="value:connectioninfo.host"/>
+								   <span class="input-group-addon" data-bind="text:'.'+desttype()"></span>
+								</div>
 							</div>
 						</div>
-						<div class="row" data-bind="visible:desttype()=='mongodb'">
+						<div class="row" data-bind="visible:desttype()=='mongo'">
 							<label class="col-md-5">
 								Database
 							</label>
@@ -464,7 +531,7 @@ iframe{
 								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.database"/>
 							</div>
 						</div>
-						<div class="row" data-bind="visible:desttype()=='mongodb'">
+						<div class="row" data-bind="visible:desttype()=='mongo'">
 							<label class="col-md-5">
 								Collection
 							</label>
@@ -536,13 +603,13 @@ iframe{
 							</label>
 							<div class="col-md-7" data-bind="text:connectioninfo.host"></div>
 						</div>
-						<div class="row" data-bind="visible:desttype()=='mongodb'">
+						<div class="row" data-bind="visible:desttype()=='mongo'">
 							<label class="col-md-5">
 								Database
 							</label>
 							<div class="col-md-7" data-bind="text:connectioninfo.database"></div>
 						</div>
-						<div class="row" data-bind="visible:desttype()=='mongodb'">
+						<div class="row" data-bind="visible:desttype()=='mongo'">
 							<label class="col-md-5">
 								Collection
 							</label>
@@ -612,6 +679,17 @@ iframe{
 // 			return false;
 // 		}
 // 	}
+	Config.calltype.subscribe(function(newVal){
+		Config.parameterList([]);
+		Config.parameterList.push(new ParameterBase());
+	})
+	Config.RemoveParameter = function(index){
+		var parameter = Config.parameterList()[index];
+		Config.parameterList.remove(parameter);
+	}
+	Config.AddParameter = function(){
+		Config.parameterList.push(new ParameterBase());
+	}
 	Config.CheckNameID = function(){
 		var nameid = Config.nameid();
 		if(nameid.trim()==""){
@@ -726,15 +804,26 @@ iframe{
 		}
 
 		var parameter = {}
-		if(Config.parameter()!==""){
-			parameter = JSON.parse(Config.parameter());
-			for(var i in parameter){
-				var type = typeof parameter[i];
-				if(type!=="object"){
-					parameter[i] = parameter[i].toString();
+		// if(Config.parameter()!==""){
+		// 	parameter = JSON.parse(Config.parameter());
+		// 	for(var i in parameter){
+		// 		var type = typeof parameter[i];
+		// 		if(type!=="object"){
+		// 			parameter[i] = parameter[i].toString();
+		// 		}
+		// 	}
+		// }
+		var parameterList = Config.parameterList();
+		if(parameterList.length>0){
+			for(var p in parameterList){
+				var key = parameterList[p].key();
+				var value = parameterList[p].value();
+				if(key.trim()!==""&&value.trim()!==""){
+					parameter[key] = value.toString();
 				}
 			}
 		}
+		
 		var url = "{{BaseUrl}}configuration/geturl";
 		var parm = {
 			URL:Config.url(),
@@ -862,6 +951,9 @@ iframe{
 		delete data["isURLSet"]
 		
 		delete data["valuetypeList"]
+		delete data["patternList"]
+		delete data["parameterList"]
+		delete data["operationcondList"]
 		delete data["operatorList"]
 		delete data["calltypeList"]
 		delete data["intervalList"]
@@ -882,7 +974,20 @@ iframe{
 			delete data["parameter"]
 			delete data["grabconf"]
 		}else{
-			data.grabconf.data = JSON.parse(data.parameter());
+			var parameter = {}
+			var parameterList = Config.parameterList();
+			if(parameterList.length>0){
+				for(var p in parameterList){
+					var key = parameterList[p].key();
+					var value = parameterList[p].value();
+					if(key.trim()!==""&&value.trim()!==""){
+						parameter[key] = value.toString();
+					}
+				}
+			}
+			// data.grabconf.data = JSON.parse(data.parameter());
+			data.grabconf.data = parameter;
+
 			delete data["parameter"]
 		}
 		
@@ -891,8 +996,10 @@ iframe{
 				case "csv":
 					delete data.datasettings()[i].connectioninfo["database"]
 					delete data.datasettings()[i].connectioninfo["collection"]
+					var h =  data.datasettings()[i].connectioninfo.host();
+					data.datasettings()[i].connectioninfo.host(WorkingDirectory+h+data.datasettings()[i].desttype())
 					break;
-				case "mongodb":
+				case "mongo":
 					delete data.datasettings()[i].connectioninfo["settings"]
 					break;
 				default:
@@ -931,8 +1038,7 @@ iframe{
 				delete data.datasettings()[i]["conditionlist"]
 			}
 		}
-		console.log(data);
-		return false;
+
 		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
 		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
 		data.logconf.logpath("data/logs/"+filename+"/");
@@ -971,12 +1077,21 @@ iframe{
 		var data = Enumerable.From(dataSource).Where(function(x){return x.nameid == nameid}).FirstOrDefault()
 		Config.isFormActive(true);
 		Config.url(data.url);
+		Config.calltype(data.calltype);
 		if(data.calltype=="POST"){
-			Config.parameter(JSON.stringify(data.grabconf.data));
+			var parameter = data.grabconf.data;
+			Config.parameterList([]);
+			var i = 0;
+			for(var p in parameter){
+				Config.parameterList.push(new ParameterBase());
+				Config.parameterList()[i].key(p);
+				Config.parameterList()[i].value(parameter[p]);
+				i++;
+			}
+			// Config.parameter(JSON.stringify(data.grabconf.data));
 		}
 		Config.isURLSet(true);
 		Config.nameid(data.nameid);
-		Config.calltype(data.calltype);
 		Config.sourcetype(data.sourcetype);
 		Config.intervaltype(data.intervaltype);
 		Config.grabinterval(data.grabinterval);
@@ -987,13 +1102,17 @@ iframe{
 			Config.datasettings()[i].name(datasettings[i].name);
 			Config.datasettings()[i].desttype(datasettings[i].desttype);
 			Config.datasettings()[i].rowselector(datasettings[i].rowselector);
-			Config.datasettings()[i].connectioninfo.host(datasettings[i].connectioninfo.host);
 			switch(datasettings[i].desttype){
 				case "csv":
+					var wd = datasettings[i].connectioninfo.host.indexOf("data\\Output")
+					var filename = datasettings[i].connectioninfo.host.substr(wd+12);
+					filename = filename.substr(0,filename.indexOf(".csv"));
+					Config.datasettings()[i].connectioninfo.host(filename);
 					Config.datasettings()[i].connectioninfo.settings.useheader(datasettings[i].connectioninfo.settings.useheader);
 					Config.datasettings()[i].connectioninfo.settings.delimiter(datasettings[i].connectioninfo.settings.delimiter);
 				break;
-				case "mongodb":
+				case "mongo":
+					Config.datasettings()[i].connectioninfo.host(datasettings[i].connectioninfo.host);
 					Config.datasettings()[i].connectioninfo.collection(datasettings[i].connectioninfo.collection);
 					Config.datasettings()[i].connectioninfo.database(datasettings[i].connectioninfo.database);
 				break;
