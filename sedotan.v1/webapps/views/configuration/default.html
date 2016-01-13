@@ -1,0 +1,1182 @@
+<style>
+#iframeTemplate{
+	display:none;
+}
+#sourceCodeWrapper{
+	overflow-y:scroll;
+	height: 250px;
+}
+#sourceCodeWrapper > div:hover{
+	background: #FFF7EA;
+    padding-left: 0px;
+    border: 1px solid #EF8F00;
+    cursor: pointer;
+}
+#sourceCodeWrapper >div.active{
+	background: #EAFFF9;
+    padding-left: 0px;
+    border: 1px solid #00C3EF;
+    cursor: pointer;
+}
+iframe{
+	border:1px solid #DDD;
+}
+#sidebar > .row{
+	margin-bottom: 5px;
+}
+#sidebar > .row > .col-md-5{
+	line-height: 25px;
+}
+
+#sidebar > .sidebar-section > .row{
+	margin-bottom: 5px;
+}
+#sidebar > .sidebar-section > .row > .col-md-5{
+	line-height: 25px;
+}
+
+.data-setting > .row{
+	margin-bottom: 5px;
+}
+.data-setting > .row > .col-md-5{
+	line-height: 25px;
+}
+.data-preview{
+	border-bottom:3px solid #0672A0;
+	margin-bottom: 10px;
+}
+.no-margin-bottom{
+	margin-bottom: 0px;
+}
+</style>
+<h1>Configuration</h1><br/>
+<script type="text/javascript">
+	var WorkingDirectory = "{{.data_dir}}";
+	model.PageId("Configuration");
+	function ParameterBase(){
+		var self = this;
+		self.key = ko.observable("");
+		self.value = ko.observable("");
+		self.pattern = ko.observable("");
+		self.format = ko.observable("");
+		return self;
+	}
+	function ConditionBase(){
+		var self = this;
+		self.column = ko.observable("");
+		self.operation = ko.observable("$eq");
+		self.value = ko.observable("");
+		self.value.subscribe(function(newVal){
+			var column = self.column();
+			if(column=="" && newVal != ""){
+				alert("Please select column first and then input the value.");
+				self.value("");
+				return false;
+			}
+			if(column!==""){
+				var ActiveData = Config.ActiveData();
+				var columnsettings = Config.datasettings()[ActiveData].columnsettings();
+				var format = Enumerable.From(columnsettings).Where(function(x){return x.alias()==column}).FirstOrDefault().valuetype();
+				if(format!=="string" && format!=="date" && isNaN(newVal)){
+					alert("Make sure the value in "+format+" format.");
+					self.value("");
+					return false;
+				}
+				else if(format=="integer" && newVal.indexOf(".") >= 0 ){
+					self.value(newVal.substr(0,newVal.indexOf(".")));
+					return false;
+				}
+			}
+		})
+		return self;
+	}
+	function ColumnBase(){
+		var self = this;
+		self.index = ko.observable(0);
+		self.alias = ko.observable("");
+		self.valuetype = ko.observable("string");
+		self.selector = ko.observable("");
+		return self;
+	}
+	function BaseData(){
+		var self = this;
+		self.name = ko.observable("");
+		self.rowselector = ko.observable("");
+		self.columnsettings = ko.observableArray([]);
+		self.filtercond = ko.observable("");
+		self.conditionlist =  ko.observableArray([]);
+		self.desttype = ko.observable("csv");
+		self.connectioninfo = {
+			host:ko.observable(""),
+			database:ko.observable(""),
+			collection:ko.observable(""),
+			settings:{
+				useheader:ko.observable(true),
+				delimiter:ko.observable(","),
+			},
+		};
+		self.filtercond.subscribe(function(newVal){
+			if(newVal==""){
+				self.conditionlist([]);
+			}else if(self.conditionlist().length==0){
+				self.conditionlist.push(new ConditionBase())
+			}
+		})
+		return self; 
+	}
+	var Config = {
+		Data:ko.observableArray([]),
+		isFormActive:ko.observable(false),
+		isURLSet:ko.observable(false),
+		// url:ko.observable("http://www.shfe.com.cn/en/products/Gold/"),
+		url:ko.observable("http://www.dce.com.cn/PublicWeb/MainServlet"),
+		// url:ko.observable(""),
+		nameid:ko.observable(""),
+		calltype:ko.observable("GET"),
+		parameter:ko.observable(""),
+		grabconf:{
+			data:ko.observable("")
+		},
+		sourcetype:ko.observable("SourceType_Http"),
+		intervaltype:ko.observable("seconds"),
+		grabinterval:ko.observable(0),
+		timeoutinterval:ko.observable(0),
+		datasettings:ko.observableArray([]),
+		logconf:{
+			logpath:ko.observable(""),
+			filename: ko.observable(""),
+			filepattern: "20060102"
+		},
+
+		// Data Source
+		parameterList:ko.observableArray([]),
+		patternList:ko.observableArray([
+				{Id:"",Title:"-"},
+				{Id:"Date.Now()",Title:"Day.Now()"},
+				{Id:"Date.Now(-1)",Title:"Day.Now(-1)"},
+			]),
+		operationcondList:ko.observableArray([
+				{Id:"$eq",Title:"EQ ( == )"},
+				{Id:"$ne",Title:"NE ( != )"},
+				{Id:"$gt",Title:"GT ( > )"},
+				{Id:"$gte",Title:"GTE ( >= )"},
+				{Id:"$lt",Title:"LT ( < )"},
+				{Id:"$lte",Title:"LTE ( <= )"},
+				{Id:"$regex",Title:"Contains"},
+				{Id:"$notcontains",Title:"Not Contains"},
+			]),
+		operatorList:ko.observableArray([
+				{Id:"",Title:"-"},
+				{Id:"$and",Title:"AND"},
+				{Id:"$or",Title:"OR"},
+				{Id:"$nand",Title:"NAND"},
+				{Id:"$nor",Title:"NOR"},
+			]),
+		valuetypeList:ko.observableArray(["string","float","integer","date"]),
+		calltypeList:ko.observableArray(["GET","POST"]),
+		intervalList:ko.observableArray(["seconds","minutes","hours"]),
+		sourcetypeList:ko.observableArray(["SourceType_Http"]),
+		desttypeList:ko.observableArray(["csv","mongo"]),
+		useheaderList:ko.observableArray([true,false]),
+		// Process
+		ProcessNumber:ko.observable(1),
+		ProcessTotal:ko.observable(3),
+
+		// Data Setting
+		ActiveData:ko.observable(0),
+		isEdit:ko.observable(false),
+		isSelecting:ko.observable(false),
+		selectingWhat:ko.observable(""),
+		selectedItem:ko.observable(""),
+		ProcessingURL:ko.observable(false),
+	}
+	var URLSource = "";
+</script>
+
+<div  data-bind="with:Config">
+	<div class="row" data-bind="visible:!isFormActive()">
+		<div class="col-md-12 align-right">
+			<button class="btn btn-info" data-bind="click:AddNew">Add New</button>
+		</div>
+		<br/>
+		<div class="col-md-12">
+			<div id="DataList"></div>
+		</div>
+	</div>
+	<div class="row"  data-bind="visible:isFormActive()">
+		<div class="col-md-7">
+			<div class="input-group">
+			  <span class="input-group-addon">Input URL</span>
+			  <input type="text" class="form-control" data-bind="value:url" id="inputURL">
+			</div>
+		</div>
+		<div class="col-md-2">
+			<div class="input-group">
+			  <span class="input-group-addon">Call Type</span>
+			  <input type="text" class="form-control" data-bind="kendoDropDownList:{value:calltype,data:calltypeList}" id="inputCallType" />
+			</div>
+		</div>
+		<div class="col-md-3">
+			<button class="btn btn-info" data-bind="click:GetURL,visible:!isEdit()">Get URL</button>
+			<button class="btn btn-danger" data-bind="click:Reset,visible:!isEdit()">Reset</button>
+			<button class="btn btn-primary" data-bind="click:Cancel">Cancel</button>
+		</div>
+	</div>
+	<br data-bind="visible:isFormActive()"/>
+	<div class="row" data-bind="visible:isFormActive()">
+		<!-- <div class="col-md-12" data-bind="visible:calltype()=='POST'">
+			<div class="input-group">
+			  <span class="input-group-addon">Parameter</span>
+			  <input type="text" class="form-control" data-bind="value:parameter" id="inputURL">
+			</div>
+		</div> -->
+		<div class="col-md-12" data-bind="visible:calltype()=='POST'">
+			<div class="row">
+				<label class="col-md-12">Parameter : </label>
+			</div>
+			<div class="row">
+				<div class="col-md-12">
+					<table class="table table-bordered">
+						<thead>
+							<tr>
+								<th width="20%">Key</th>
+								<th>Value</th>
+								<th width="15%">Pattern</th>
+								<th width="20%">Format</th>
+								<th width="50px">&nbsp;</th>
+							</tr>
+						</thead>
+						<tbody data-bind="foreach:parameterList">
+							<tr>
+								<td>
+									<input type="text" data-bind="value:key" class="form-control input-sm"/>
+								</td>
+								<td>
+									<input type="text" data-bind="value:value" class="form-control input-sm"/>
+								</td>
+								<td>
+									<input type="text" data-bind="kendoDropDownList:{value:pattern,data:$parent.patternList,dataTextField: 'Title', dataValueField: 'Id'}" class="form-control input-sm"/>
+								</td>
+								<td>
+									<input type="text" data-bind="value:format,attr:{disabled:pattern()==''?true:false}" class="form-control input-sm"/>
+								</td>
+								<td class="align-center">
+									<button class="btn btn-sm btn-default" data-bind="attr:{onclick:'Config.RemoveParameter('+$index()+')'}">
+										<span class="fa fa-trash"></span>
+									</button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="align-right">
+						<button class="btn btn-xs btn-default" data-bind="click:Config.AddParameter">
+							<span class="fa fa-plus"></span> add parameter
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<br/>
+	<div class="row"  data-bind="visible:isFormActive()">
+		<div class="col-md-4" id="sidebar" data-bind="visible:isURLSet()">
+			<!-- Sidebar -->
+			
+			<div class="row">
+				<div class="col-md-12 align-center">
+					<h3 data-bind="visible:ProcessNumber()==1">Grabber - Set Up</h3>
+					<h3 data-bind="visible:ProcessNumber()==2">Grabber - Set Up &raquo; Data Setting</h3>
+					<h3 data-bind="visible:ProcessNumber()==3">Grabber - Set Up &raquo; Preview</h3>
+				</div>
+			</div>
+			<div class="row" data-bind="visible:isSelecting()">
+				<div class="col-md-12 align-right">
+					<button class="btn btn-xs btn-success" data-bind="click:CompleteSelection"><span class="fa fa-operation-circle"></span> Done</button>&nbsp;
+					<button class="btn btn-xs btn-warning" data-bind="click:CancelSelection"><span class="fa fa-mail-reply-all"></span> Cancel</button>
+				</div>
+				<div class="col-md-12">&nbsp;</div>
+				<div class="col-md-12">Selected Item :</div>
+				<div class="col-md-12">
+					<pre><code class="language-markup" data-bind="text:selectedItem"  style="overflow-wrap: break-word;"></code></pre>
+				</div>
+				<hr/>
+				<div class="col-md-12">
+					<div id="sourceCodeWrapper">
+					</div>
+				</div>
+			</div>
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==1">
+				<div class="row">
+					<label class="col-md-5">
+						Name ID
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:nameid" class="form-control"/>
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Source Type
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="kendoDropDownList:{value:sourcetype,data:sourcetypeList}" />
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Interval Type
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="kendoDropDownList:{value:intervaltype,data:intervalList}" />
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Grab Interval
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:grabinterval" class="form-control"/>
+					</div>
+				</div>
+				<div class="row">
+					<label class="col-md-5">
+						Timeout Interval
+					</label>
+					<div class="col-md-7">
+						<input type="text" data-bind="value:timeoutinterval" class="form-control"/>
+					</div>
+				</div>
+			</div>
+
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==2&&!isSelecting()">
+				<div class="row">
+					<label class="col-md-12">
+						List :
+					</label>
+				</div>
+				<div class="row">
+					<div class="col-md-12">
+						<table width="100%" class="table table-bordered">
+							<thead>
+								<tr>
+									<th width="20%">Name</th>
+									<th>Row Selector</th>
+									<th width="75px;">&nbsp;</th>
+								</tr>
+							</thead>
+							<tbody data-bind="foreach:datasettings">
+								<tr>
+									<td data-bind="text:name()==''?'-':name"></td>
+									<td>
+										<div data-bind="text:rowselector()==''?'-':rowselector"></div>
+									</td>
+									<td class="align-center">
+										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.ActiveData('+$index()+')'}">
+											<span class="fa fa-edit"></span>
+										</button>
+										<button class="btn btn-xs btn-info" data-bind="attr:{onclick:'Config.RemoveRowData('+$index()+')'}">
+											<span class="fa fa-trash"></span>
+										</button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<hr/>
+				</div>
+
+				<div class="row" data-bind="foreach:datasettings">
+					<div class="col-md-12 data-setting" data-bind="visible:$index()==$parent.ActiveData()">
+						<div class="row">
+							<label class="col-md-5">
+								Name
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="value:name" class="form-control input-sm"/>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Row Selector
+							</label>
+							<div class="col-md-7">
+								<div class="input-group input-group-sm">
+									<input type="text" data-bind="value:rowselector" class="form-control"/>
+									<span class="input-group-btn">
+										<button class="btn btn-primary" data-bind="attr:{onclick:'Config.GetRowSelector('+$index()+')'}">
+											<span class="fa fa-search"></span>
+										</button>
+									</span>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-8">
+								<b>Column Setting : </b>
+							</div>
+							<div class="col-md-4 align-right">
+								<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.AddColumn('+$index()+')'}">
+									<span class="fa fa-plus"></span> add column
+								</button>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<table width="100%" class="table">
+									<tr>
+										<th width="30%">Alias</th>
+										<th width="25%">Type</th>
+										<th>Selector</th>
+									</tr>
+									<tbody data-bind="foreach:columnsettings">
+										<tr>
+											<td>
+												<input type="text" class="form-control input-sm" data-bind="value:alias"/>
+											</td>
+											<td>
+												<input type="text" style="width:100%" data-bind="kendoDropDownList:{value:valuetype,data:Config.valuetypeList}" />
+											</td>
+											<td>
+												<div class="input-group input-group-sm">
+													<input type="text" class="form-control" data-bind="value:selector"/>
+											      	<span class="input-group-btn">
+											        	<button class="btn btn-primary" data-bind="attr:{onclick:'Config.GetColumnSettings('+$index()+')'}">
+															<span class="fa fa-search"></span>
+														</button>
+														<button class="btn btn-default" data-bind="attr:{onclick:'Config.RemoveColumnSettings('+$index()+')'}">
+															<span class="fa fa-trash"></span>
+														</button>
+											      	</span>
+											    </div>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Filter Cond.
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:filtercond,data:$parent.operatorList,dataTextField: 'Title', dataValueField: 'Id'}" />
+							</div>
+						</div>
+						<div class="row" data-bind="visible:filtercond()!==''">
+							<div class="col-md-12">
+								<table width="100%" class="table no-margin-bottom">
+									<tr>
+										<th width="30%">Column</th>
+										<th width="25%">Operation</th>
+										<th>Value</th>
+									</tr>
+									<tbody data-bind="foreach:conditionlist">
+										<tr>
+											<td>
+												<input type="text" data-bind="kendoDropDownList:{value:column,data:$parent.columnsettings,dataTextField: 'alias', dataValueField: 'alias'}" style="width:100%"/>
+											</td>
+											<td>
+												<input type="text" data-bind="kendoDropDownList:{value:operation,data:Config.operationcondList,dataTextField: 'Title', dataValueField: 'Id'}" style="width:100%"/>
+											</td>
+											<td>
+												<div class="input-group input-group-sm">
+													<input type="text" class="form-control" data-bind="value:value"/>
+											      	<span class="input-group-btn">
+														<button class="btn btn-default" data-bind="attr:{onclick:'Config.RemoveCondition('+$index()+')'}">
+															<span class="fa fa-trash"></span>
+														</button>
+											      	</span>
+											    </div>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+								<div class="align-right">
+									<button class="btn btn-xs btn-default" data-bind="attr:{onclick:'Config.AddCondition('+$index()+')'}">
+										<span class="fa fa-plus"></span> add condition
+									</button>
+								</div>
+							</div>
+							<div class="col-md-12">&nbsp;</div>
+						</div>
+
+						<div class="row">
+							<label class="col-md-5">
+								Destination Type
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:desttype,data:$parent.desttypeList}" />
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5" data-bind="visible:desttype()=='mongo'">Host</label>
+							<label class="col-md-5" data-bind="visible:desttype()!=='mongo'">FileName</label>
+							<div class="col-md-7">
+								<div class="input-group input-group-sm" data-bind="visible:desttype()=='mongo'">
+								  <input type="text" class="form-control input-sm" data-bind="value:connectioninfo.host"/>
+								  <span class="input-group-addon">Ex: localhost:27017</span>
+								</div>
+								<div class="input-group input-group-sm" data-bind="visible:desttype()!=='mongo'">
+								   <span class="input-group-addon">data/Output/</span>
+								   <input type="text" class="form-control input-sm" data-bind="value:connectioninfo.host"/>
+								   <span class="input-group-addon" data-bind="text:'.'+desttype()"></span>
+								</div>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongo'">
+							<label class="col-md-5">
+								Database
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.database"/>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongo'">
+							<label class="col-md-5">
+								Collection
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.collection"/>
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Use Header
+							</label>
+							<div class="col-md-7">
+								<input type="text" data-bind="kendoDropDownList:{value:connectioninfo.settings.useheader,data:$parent.useheaderList}" />
+							</div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Delimiter
+							</label>
+							<div class="col-md-7">
+								<input type="text" class="form-control input-sm" data-bind="value:connectioninfo.settings.delimiter"/>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="sidebar-section"  data-bind="visible:ProcessNumber()==3">
+				<div class="row" data-bind="foreach:datasettings">
+					<div class="col-md-12 data-setting data-preview">
+						<div class="row">
+							<label class="col-md-5">Name</label>
+							<div class="col-md-7" data-bind="text:name"></div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">Row Selector</label>
+							<div class="col-md-7" data-bind="text:rowselector" ></div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<b>Column Setting : </b>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-md-12">
+								<table width="100%" class="table">
+									<tr>
+										<th width="40%">Alias</th>
+										<th>Selector</th>
+									</tr>
+									<tbody data-bind="foreach:columnsettings">
+										<tr>
+											<td data-bind="text:alias"></td>
+											<td data-bind="text:selector"></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Destination Type
+							</label>
+							<div class="col-md-7" data-bind="text:desttype"></div>
+						</div>
+						<div class="row">
+							<label class="col-md-5">
+								Host
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.host"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongo'">
+							<label class="col-md-5">
+								Database
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.database"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='mongo'">
+							<label class="col-md-5">
+								Collection
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.collection"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Use Header
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.settings.useheader"></div>
+						</div>
+						<div class="row" data-bind="visible:desttype()=='csv'">
+							<label class="col-md-5">
+								Delimiter
+							</label>
+							<div class="col-md-7" data-bind="text:connectioninfo.settings.delimiter"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="row" data-bind="visible:!Config.isSelecting()">
+				<div class="col-md-12 align-right">
+					<button class="btn btn-primary" data-bind="visible:ProcessNumber()==2" onclick="Config.AddData();">Add More Data</button>
+
+					<button class="btn btn-default" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(1)">Back</button>
+					<button class="btn btn-default" data-bind="visible:ProcessNumber()==3" onclick="Config.ProcessNumber(2)">Back</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==1,attr:{disabled:!Config.isURLSet()}" onclick="Config.CheckNameID()">Next</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==2" onclick="Config.ProcessNumber(3)">Next</button>
+					<button class="btn btn-success" data-bind="visible:ProcessNumber()==3,click:Save">Save</button>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-8" data-bind="attr:{'class':isURLSet()?'col-md-8':'col-md-12'}">
+			<div data-bind="visible:ProcessingURL()" class="align-center">
+		        <h4>Please wait while processing your request</h4>
+		        <img src="/static/img/loader.gif" alt="Loading..." />
+		    </div>
+			<div id="iframeTemplate">
+				<style>
+					body{
+						background: #FDFDFD;
+					}
+				</style>
+				<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
+				<div style="font-family:'Open Sans';">
+					<div class="align-center" style="text-align: center;font-size: 50px;color: #373e4a;margin-top: 170px">Result Preview</div>
+				</div>
+			</div>
+			<iframe name="URLPreview" id="URLPreview" width="100%" height="450px" frameborder="0" data-bind="visible:!ProcessingURL()" ></iframe>
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+// 	Config.CheckFormat = function(index){
+// 		var ActiveData = Config.ActiveData();
+// 		var columnsettings = Config.datasettings()[ActiveData].columnsettings();
+// 		var condition = Config.datasettings()[ActiveData].conditionlist()[index];
+// 		console.log(condition.value());
+// 		var format = Enumerable.From(columnsettings).Where(function(x){return x.alias()==condition.column()}).FirstOrDefault().valuetype();
+// 		if(format!=="string"&&format!=="date"&& isNaN(condition.value())){
+// 			var value = condition.value();
+// 			var len = value.length;
+// 			console.log(value);
+// 			// condition.value(100);
+// // value.substr(0,len)
+// 			return false;
+// 		}
+// 	}
+	Config.calltype.subscribe(function(newVal){
+		Config.parameterList([]);
+		Config.parameterList.push(new ParameterBase());
+	})
+	Config.RemoveParameter = function(index){
+		var parameter = Config.parameterList()[index];
+		Config.parameterList.remove(parameter);
+	}
+	Config.AddParameter = function(){
+		Config.parameterList.push(new ParameterBase());
+	}
+	Config.CheckNameID = function(){
+		var nameid = Config.nameid();
+		if(nameid.trim()==""){
+			alert("Please input the Name ID")
+			return false;
+		}
+		Config.ProcessNumber(2);
+	}
+	Config.RemoveRowData = function(index){
+		var d = Config.datasettings()[index];
+		Config.datasettings.remove(d);
+	}
+	Config.RemoveCondition = function(index){
+		var ActiveData = Config.ActiveData();
+		var data = Config.datasettings()[ActiveData].conditionlist()[index];
+		Config.datasettings()[ActiveData].conditionlist.remove(data);
+	}
+	Config.RemoveColumnSettings = function(index){
+		var ActiveData = Config.ActiveData();
+		var data = Config.datasettings()[ActiveData].columnsettings()[index];
+		Config.datasettings()[ActiveData].columnsettings.remove(data);
+	}
+	Config.GetColumnSettings = function(index){
+		Config.isSelecting(true);
+		Config.selectedItem("");
+		Config.selectingWhat("columnsettings"+index);
+	}
+	Config.GetRowSelector = function(index){
+		Config.isSelecting(true);
+		Config.selectedItem("");
+		Config.selectingWhat("rowselector"+index);
+	}
+	Config.CompleteSelection = function(){
+		var selectedItem = Config.selectedItem();
+		var selectingWhat = Config.selectingWhat();
+		$("*.selector").attr("class","selector");
+		
+		var selectingIndex = 0;
+		if(selectingWhat.indexOf("rowselector") == 0){
+			selectingIndex = parseInt(selectingWhat.substr(11));
+			Config.datasettings()[selectingIndex].rowselector(selectedItem)
+		}else{
+			selectingIndex = parseInt(selectingWhat.substr(14));
+			Config.datasettings()[Config.ActiveData()].columnsettings()[0].selector(selectedItem);
+		}
+		Config.isSelecting(false);
+		Config.selectingWhat("");
+	}
+	Config.Cancel = function(){
+		Config.url("");
+		Config.parameter("");
+		Config.calltype("GET");
+		Config.isURLSet(false);
+		Config.isFormActive(false);
+	}
+	Config.CancelSelection = function(){
+		Config.selectingWhat("");	
+		Config.isSelecting(false);
+	}
+	Config.AddNew = function(){
+		$("#inputURL").attr("readonly",false);
+		$("#inputCallType").data("kendoDropDownList").readonly(false);
+		Config.isFormActive(true);
+		Config.isEdit(false);
+		var doc = document.getElementById('URLPreview').contentWindow.document;
+		doc.open();
+		doc.write($("#iframeTemplate").html());
+		doc.close();
+	}
+	Config.AddData = function(){
+		Config.datasettings.push(new BaseData());
+		Config.ActiveData(Config.datasettings().length-1);
+		Config.AddColumn(Config.datasettings().length-1);
+	}
+	Config.AddColumn = function(index){
+		Config.datasettings()[index].columnsettings.push(new ColumnBase());
+	}
+	Config.AddCondition = function(index){
+		Config.datasettings()[index].conditionlist.push(new ConditionBase());	
+	}
+	Config.Reset = function(){
+		Config.url("");
+		Config.parameter("");
+		Config.calltype("GET");
+		Config.isURLSet(false);
+		var doc = document.getElementById('URLPreview').contentWindow.document;
+		doc.open();
+		doc.write($("#iframeTemplate").html());
+		doc.close();
+	}
+	Config.GetURL = function(){
+		Config.ProcessingURL(true);
+		if(!Config.isEdit()){
+			Config.nameid("");
+			Config.ProcessNumber(1);
+			Config.sourcetype("SourceType_Http");
+			Config.intervaltype("seconds");
+			Config.grabinterval(0);
+			Config.timeoutinterval(0);
+			Config.datasettings([]);
+			Config.logconf.logpath("");
+			Config.logconf.filename("");
+
+			if(Config.url().trim()==""){
+				alert("Url cannot be empty.");
+				return false;
+			}
+			Config.isURLSet(true);
+			Config.datasettings([]);
+			Config.datasettings.push(new BaseData());
+			Config.AddColumn(0);
+		}
+
+		var parameter = {}
+		// if(Config.parameter()!==""){
+		// 	parameter = JSON.parse(Config.parameter());
+		// 	for(var i in parameter){
+		// 		var type = typeof parameter[i];
+		// 		if(type!=="object"){
+		// 			parameter[i] = parameter[i].toString();
+		// 		}
+		// 	}
+		// }
+		var parameterList = Config.parameterList();
+		if(parameterList.length>0){
+			for(var p in parameterList){
+				var key = parameterList[p].key();
+				var value = parameterList[p].value();
+				if(key.trim()!==""&&value.trim()!==""){
+					parameter[key] = value.toString();
+				}
+			}
+		}
+		
+		var url = "{{BaseUrl}}configuration/geturl";
+		var parm = {
+			URL:Config.url(),
+			Method:Config.calltype(),
+			Parameter:Config.calltype()=="GET"?null:parameter
+		};
+		ajaxPost(url,parm,function(res){
+			Config.ProcessingURL(false);
+			var BaseUrl = Config.url().substr(0,Config.url().substr(Config.url().indexOf("www")).indexOf("/")+Config.url().indexOf("www")+1);
+
+			// var findcss = new RegExp("href=\"/", 'g');
+			// var findjs = new RegExp("src=\"/", 'g');
+			// res = res.replace(findcss,"href=\""+BaseUrl);
+			// res = res.replace(findjs,"src=\""+BaseUrl);
+			var find = new RegExp("=\"/", 'g');
+			res = res.replace(find,"=\""+BaseUrl);
+			
+
+			var doc = document.getElementById('URLPreview').contentWindow.document;
+			doc.open();
+			doc.write(res);
+			doc.close();
+			var startofbody = res.indexOf("<body");
+			var endofbody = res.indexOf("</body");
+			var body = res.substr(startofbody,endofbody-startofbody);
+			startofbody = body.indexOf(">");
+			body = body.substr(startofbody+1);
+			// console.log()
+			URLSource = $.parseHTML(body)
+			$("#sourceCodeWrapper").html("");
+			$(URLSource).each(function(i,e){
+			 if($(this).html()!==undefined){
+			 	linenumber = Config.GetElement($(this),0,0,0,"body");
+			 }
+			})
+			// $("#sourceCodeWrapper").text(body);
+			// $("#cssCodeWrapper").html("p { color: red }");
+	        // alert("Configuration succesfully saved");
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Config.GetElement = function(obj,parent,linenumber,index,selector){
+		linenumber +=1;
+		var classes = obj.attr("class");
+		var id = obj.attr("id");
+		if( id !== undefined && id !== "" ){
+			id = "id='"+id+"'";
+		}else{
+			id = "";
+		}
+		if( classes !== undefined && classes !== "" ){
+			classes = "class='"+classes+"'";
+		}else{
+			classes = "";
+		}
+		var nodeName = obj.get()[0].nodeName.toLowerCase();
+		if(id!==""){
+			selector+=" > "+nodeName+"#"+obj.attr("id").split(" ")[0]+":eq("+index+")";
+		}else if(classes!==""){
+			selector+=" > "+nodeName+"."+obj.attr("class").split(" ")[0]+":eq("+index+")";
+		}else{
+			selector+=" > "+nodeName+":eq("+index+")";
+		}
+		
+		var str = "<"+nodeName+" "+id+" "+classes+">..";
+		var style = "style='padding-left:"+parseFloat(parent)*10+"px'";
+		$("#sourceCodeWrapper").append("<div id='scw"+linenumber+"' "+style+" class='selector'></div>");
+		$("#scw"+linenumber).text(str);
+		$("#scw"+linenumber).attr("onclick","Config.GetCurrentSelector('"+"scw"+linenumber+"','"+selector+"')");
+		var idx = 0;
+		var prevNode = "";
+		obj.children().each(function(i,e){
+			var node = $(this).get()[0].nodeName.toLowerCase();
+			if (prevNode == node){
+				idx=0;
+			}
+			if($(this).html()!==undefined && node!== "link" && node !=="script" && node !=="br" && node !=="hr" ){
+				linenumber = Config.GetElement($(this),parseFloat(parent+1),linenumber,idx,selector);
+				idx++;
+			}
+			prevNode = node;
+		})
+		return linenumber;
+	}
+
+	Config.GetCurrentSelector = function(id,selector){
+		$("*.selector").attr("class","selector");
+		$("#"+id).attr("class","selector active");
+		var existingStyle = $(Config.selectedItem(), $("#URLPreview").contents()).attr("style");
+		
+		if(existingStyle!==undefined){
+			existingStyle = existingStyle.replace(";border:5px solid #FF9900","");
+			existingStyle = existingStyle.replace("border:5px solid #FF9900","");
+			$(Config.selectedItem(), $("#URLPreview").contents()).attr("style",existingStyle);
+		}
+		
+		// console.log(selector);
+		$("body", $("#URLPreview").contents()).scrollTop($(selector, $("#URLPreview").contents()).offset().top)
+		
+		Config.selectedItem(selector);
+		existingStyle = "";
+		existingStyle = $(selector, $("#URLPreview").contents()).attr("style");
+		if(existingStyle!==undefined){
+			if(existingStyle[existingStyle.length-1]==";"){
+				existingStyle += existingStyle+"border:5px solid #FF9900"	
+			}else{
+				existingStyle += existingStyle+";border:5px solid #FF9900"
+			}
+			
+		}else{
+			existingStyle = "border:5px solid #FF9900"
+		}
+		$(selector, $("#URLPreview").contents()).attr("style",existingStyle);
+	}
+
+	Config.Save = function(){
+		Config.grabinterval(parseFloat(Config.grabinterval()));
+		Config.timeoutinterval(parseFloat(Config.timeoutinterval()));
+		var jsondata = ko.mapping.toJSON(Config);
+		var data = ko.mapping.fromJSON(jsondata);
+		delete data["Data"]
+		delete data["isFormActive"]
+		delete data["isURLSet"]
+		
+		delete data["valuetypeList"]
+		delete data["patternList"]
+		delete data["parameterList"]
+		delete data["operationcondList"]
+		delete data["operatorList"]
+		delete data["calltypeList"]
+		delete data["intervalList"]
+		delete data["sourcetypeList"]
+		delete data["desttypeList"]
+		delete data["useheaderList"]
+
+		delete data["ProcessNumber"]
+		delete data["ProcessTotal"]
+		delete data["ActiveData"]
+		delete data["isEdit"]
+		delete data["isSelecting"]
+		delete data["selectingWhat"]
+		delete data["selectedItem"]
+		delete data["ProcessingURL"]
+		
+		if(data.calltype()=="GET"){
+			delete data["parameter"]
+			delete data["grabconf"]
+		}else{
+			var parameter = {}
+			var parameterList = Config.parameterList();
+			if(parameterList.length>0){
+				for(var p in parameterList){
+					var key = parameterList[p].key();
+					var value = parameterList[p].value();
+					if(key.trim()!==""&&value.trim()!==""){
+						parameter[key] = value.toString();
+					}
+				}
+			}
+			// data.grabconf.data = JSON.parse(data.parameter());
+			data.grabconf.data = parameter;
+
+			delete data["parameter"]
+		}
+		
+		for(var i in data.datasettings()){
+			switch(data.datasettings()[i].desttype()){
+				case "csv":
+					delete data.datasettings()[i].connectioninfo["database"]
+					delete data.datasettings()[i].connectioninfo["collection"]
+					var h =  data.datasettings()[i].connectioninfo.host();
+					data.datasettings()[i].connectioninfo.host(WorkingDirectory+h+data.datasettings()[i].desttype())
+					break;
+				case "mongo":
+					delete data.datasettings()[i].connectioninfo["settings"]
+					break;
+				default:
+					break;
+			}
+			var filtercond = data.datasettings()[i].filtercond();
+			if(filtercond==""){
+				delete data.datasettings()[i]["conditionlist"]
+				delete data.datasettings()[i]["filtercond"]
+			}else{
+				var condition = {}
+				condition[filtercond] = [];
+				var conditionlist = data.datasettings()[i].conditionlist();
+				var columnsettings = data.datasettings()[i].columnsettings();
+				for(var r in conditionlist){
+					var obj = {};
+					var col = conditionlist[r].column();
+					obj[col] = {};
+					var format = Enumerable.From(columnsettings).Where(function(x){return x.alias() == col}).FirstOrDefault().valuetype();
+					var operation = conditionlist[r].operation();
+					var val = conditionlist[r].value();
+					switch (format){
+						case "integer":
+							obj[col][operation] = parseInt(val);
+							break;
+						case "float":
+							obj[col][operation] = parseFloat(val);
+							break;
+						default:
+							obj[col][operation] = val;
+							break;
+					}
+					condition[filtercond].push(obj);
+				} 
+				data.datasettings()[i].filtercond(condition);
+				delete data.datasettings()[i]["conditionlist"]
+			}
+		}
+
+		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
+		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
+		data.logconf.logpath("data/logs/"+filename+"/");
+		data.logconf.filename("LOG-"+filename+"-%s");
+		var url = "{{BaseUrl}}configuration/save";
+		var parm = {
+			Data:ko.mapping.toJSON(data),
+			IsEdit:Config.isEdit(),
+			NameID:data.nameid
+		};
+		ajaxPost(url,parm,function(res){
+	        alert("Configuration succesfully saved");
+	        location.reload()
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+
+	Config.GetConfiguration = function(){
+		var url = "{{BaseUrl}}configuration/getdata";
+		var parm = {};
+		ajaxPost(url,parm,function(res){
+			Config.Data(res);
+			Config.GenDataList(res);
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Config.Edit = function(nameid){
+		$("#inputURL").attr("readonly",true);
+		$("#inputCallType").data("kendoDropDownList").readonly(true);
+		Config.isEdit(true);
+		var dataSource = Config.Data();
+		var data = Enumerable.From(dataSource).Where(function(x){return x.nameid == nameid}).FirstOrDefault()
+		Config.isFormActive(true);
+		Config.url(data.url);
+		Config.calltype(data.calltype);
+		if(data.calltype=="POST"){
+			var parameter = data.grabconf.data;
+			Config.parameterList([]);
+			var i = 0;
+			for(var p in parameter){
+				Config.parameterList.push(new ParameterBase());
+				Config.parameterList()[i].key(p);
+				Config.parameterList()[i].value(parameter[p]);
+				i++;
+			}
+			// Config.parameter(JSON.stringify(data.grabconf.data));
+		}
+		Config.isURLSet(true);
+		Config.nameid(data.nameid);
+		Config.sourcetype(data.sourcetype);
+		Config.intervaltype(data.intervaltype);
+		Config.grabinterval(data.grabinterval);
+		Config.timeoutinterval(data.timeoutinterval);
+		var datasettings = data.datasettings;
+		for(var i in datasettings){
+			Config.datasettings.push(new BaseData());
+			Config.datasettings()[i].name(datasettings[i].name);
+			Config.datasettings()[i].desttype(datasettings[i].desttype);
+			Config.datasettings()[i].rowselector(datasettings[i].rowselector);
+			switch(datasettings[i].desttype){
+				case "csv":
+					var wd = datasettings[i].connectioninfo.host.indexOf("data\\Output")
+					var filename = datasettings[i].connectioninfo.host.substr(wd+12);
+					filename = filename.substr(0,filename.indexOf(".csv"));
+					Config.datasettings()[i].connectioninfo.host(filename);
+					Config.datasettings()[i].connectioninfo.settings.useheader(datasettings[i].connectioninfo.settings.useheader);
+					Config.datasettings()[i].connectioninfo.settings.delimiter(datasettings[i].connectioninfo.settings.delimiter);
+				break;
+				case "mongo":
+					Config.datasettings()[i].connectioninfo.host(datasettings[i].connectioninfo.host);
+					Config.datasettings()[i].connectioninfo.collection(datasettings[i].connectioninfo.collection);
+					Config.datasettings()[i].connectioninfo.database(datasettings[i].connectioninfo.database);
+				break;
+				default:break;
+			}
+			var columnsettings = datasettings[i].columnsettings;
+			for(var c in columnsettings){
+				Config.datasettings()[i].columnsettings.push(new ColumnBase())
+				Config.datasettings()[i].columnsettings()[c].alias(columnsettings[c].alias);
+				Config.datasettings()[i].columnsettings()[c].selector(columnsettings[c].selector);
+			}
+
+		}
+		Config.GetURL();
+	}
+
+	
+
+	Config.Delete = function(nameid){
+		if(!confirm("Are you sure?")){
+			return false;
+		}
+
+		var url = "{{BaseUrl}}configuration/delete";
+		var parm = {
+			NameID:nameid
+		};
+		ajaxPost(url,parm,function(res){
+	        alert("Data has been deleted");
+	        location.reload()
+	    },
+	    function(err){
+	        alert(err.responseText)
+	    });
+	}
+	Config.GenDataList = function(dataSource){
+		$("#DataList").html("");
+		$("#DataList").kendoGrid({
+			dataSource: {
+			  data: dataSource,
+			  pageSize: 10
+			},
+			scrollable: true,
+			sortable: true,
+			filterable: true,
+			columns: [
+			  { field: "nameid", title: "Name ID"},
+			  { field: "calltype", title: "Call Type",width:100},
+			  { field: "sourcetype", title: "Source Type",width:150},
+			  { field: "intervaltype", title: "Interval Type",width:120},
+			  { field: "grabinterval", title: "Grab Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
+			  { field: "timeoutinterval", title: "Timeout Type",format:"{0:N2}",width:120,attributes:{ class:"align-right" }},
+			  { field: "datasettings", title: "Data Setting",template:"#:datasettings.length# Data"},
+			  { field: "nameid", title: "&nbsp;",filterable:false,sortable:false,width:100,attributes:{ class:"align-center" },
+			  	template:"<button class='btn btn-default' onclick='Config.Edit(\"#:nameid#\")'><span class='fa fa-edit' ></span></button>"+
+			  	"&nbsp;"+
+			  	"<button class='btn btn-default' onclick='Config.Delete(\"#:nameid#\")'><span class='fa fa-trash' ></span></button>"
+			  },
+
+			]
+		})
+	}
+
+	$(document).ready(function(){
+		Config.GetConfiguration();
+	})
+</script>
