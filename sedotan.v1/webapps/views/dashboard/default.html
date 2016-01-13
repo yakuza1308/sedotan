@@ -128,6 +128,18 @@ $.ajax({
 
 var localDataSources = new kendo.data.DataSource({
     data: localdata,
+    schema: {
+        model: {
+            fields: {
+                nameid: {type: "string"},
+                url: {type: "string"},
+                lastGrab: { type: "date" },
+                nextGrab: {type: "date"},
+                rowsaved: {type: "number"},
+                notehistory: {type: "string"}
+            }
+        }
+    },
     pageSize: 10
 });
 
@@ -135,18 +147,32 @@ var localDataSources = new kendo.data.DataSource({
 var commonSettings = {
     dataSource: localDataSources,
     sortable: true,
+    filterable: {
+        extra: false,
+        operators: {
+            string: {
+                startswith: "Starts with",
+                eq: "Is equal to",
+                neq: "Is not equal to"
+            }
+        }
+    },
     pageable: {/* refresh: true, */pageSizes: true,buttonCount: 5},
     columns: [
     {template: kendo.template($("#command-template").html()),width: 80}, 
-    {field: "status",title: "STATUS",width: 60}, 
+    {field: "status",title: "STATUS", filterable: false, width: 60}, 
     {field: "nameid",title: "NAME ID",width: 100}, 
     {field: "url",title: "SOURCE",}, 
-    {field: "grabinterval",title: "INTERVAL",width: 85}, 
-    {field: "lastGrab",title: "LAST GRAB",width: 120}, 
-    {field: "nextGrab",title: "NEXT GRAB",width: 120}, 
-    {field: "grabStat",title: "GRAB STAT",width: 70}, 
-    {field: "note",title: "NOTE", encoded: false}, 
-    {field: "history",title: "History",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.History(\"#:nameid#\")'><span>History</span></button>"}
+    {field: "grabinterval",title: "INTERVAL",filterable: false, width: 85}, 
+    {field: "lastGrab",title: "LAST GRAB",filterable: {
+                        ui: "datetimepicker"
+                    },title: "START",format: "{0:yyyy/MM/dd HH:mm tt}",width: 120}, 
+    {field: "nextGrab",title: "NEXT GRAB",filterable: {
+                        ui: "datetimepicker"
+                    },title: "START",format: "{0:yyyy/MM/dd HH:mm tt}",width: 120}, 
+    {field: "grabStat",title: "GRAB STAT",filterable: false, width: 70}, 
+    {field: "note",title: "NOTE", encoded: false, filterable: false}, 
+    {field: "history",title: "History",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.History(\"#:nameid#\")'><span>History</span></button>", filterable: false}
     ]
 }
 
@@ -321,12 +347,33 @@ Config.History = function(nameid){
             ViewData.HistoryData(data);
             var dataHistory = new kendo.data.DataSource({
                 data: data,
+                schema: {
+                    model: {
+                        fields: {
+                            datasettingname: {type: "string"},
+                            grabdate: { type: "date" },
+                            rowgrabbed: {type: "number"},
+                            rowsaved: {type: "number"},
+                            notehistory: {type: "string"}
+                        }
+                    }
+                },
                 pageSize: 10
             });
 
             var dsGridHistory = $("#grid-history").kendoGrid({
                 dataSource: dataHistory,
                 noRecords: true,
+                filterable: {
+                    extra: false,
+                    operators: {
+                        string: {
+                            startswith: "Starts with",
+                            eq: "Is equal to",
+                            neq: "Is not equal to"
+                        }
+                    }
+                },
                 messages: {
                     noRecords: "<span style='font-size:14px'><strong>Upss..no history found!</strong></span>"
                 },
@@ -334,15 +381,17 @@ Config.History = function(nameid){
                 dataBound: onHistoryDataBound,
                 pageable: {pageSizes: true},
                 columns: [
-                {field: "id",title: "ID", width: 50}, 
-                {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), width: 60},
+                {field: "id",title: "ID", filterable: false, width: 50}, 
+                {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), filterable: false, width: 60},
                 {field: "datasettingname",title: "DATA NAME"}, 
-                {field: "grabdate",title: "START"},
+                {field: "grabdate",filterable: {
+                                    ui: "datetimepicker"
+                                },title: "START",format: "{0:yyyy/MM/dd HH:mm tt}"},
                 {field: "rowgrabbed",title: "GRAB COUNT"},
                 {field: "rowsaved",title: "ROW SAVE"},
                 {field: "notehistory",title: "NOTE"},
-                {field: "viewBtn",title: "&nbsp;",width:100,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.ViewData(\"#:datasettingname#\",\"#:id#\")'><span>View Data</span></button>"},
-                {field: "logBtn",title: "&nbsp;",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.Log(\"#:grabdate#\",\"#:nameid#\")'><span>Log</span></button>"}
+                {field: "viewBtn",title: "&nbsp;",width:100,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.ViewData(\"#:datasettingname#\",\"#:id#\")'><span>View Data</span></button>", filterable: false},
+                {field: "logBtn",title: "&nbsp;",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.Log(\"#:kendo.toString(grabdate, 'yyyy/MM/dd HH:mm:ss')#\",\"#:nameid#\")'><span>Log</span></button>", filterable: false}
                 ]
             });
 
