@@ -997,7 +997,7 @@ iframe{
 					delete data.datasettings()[i].connectioninfo["database"]
 					delete data.datasettings()[i].connectioninfo["collection"]
 					var h =  data.datasettings()[i].connectioninfo.host();
-					data.datasettings()[i].connectioninfo.host(WorkingDirectory+h+data.datasettings()[i].desttype())
+					data.datasettings()[i].connectioninfo.host(WorkingDirectory+h+"."+data.datasettings()[i].desttype())
 					break;
 				case "mongo":
 					delete data.datasettings()[i].connectioninfo["settings"]
@@ -1041,7 +1041,7 @@ iframe{
 
 		var filename = Config.url().substr((Config.url().indexOf("www.")+4));
 		filename = filename.substr(0,filename.indexOf(".")).toUpperCase();
-		data.logconf.logpath("data/logs/"+filename+"/");
+		data.logconf.logpath("data/Log/"+filename+"/");
 		data.logconf.filename("LOG-"+filename+"-%s");
 		var url = "{{BaseUrl}}configuration/save";
 		var parm = {
