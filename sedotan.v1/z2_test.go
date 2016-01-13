@@ -189,7 +189,7 @@ func TestServiceGrabPost(t *testing.T) {
 	xGrabService.Name = "irondcecom"
 	xGrabService.Url = "http://www.dce.com.cn/PublicWeb/MainServlet"
 
-	xGrabService.SourceType = SourceType_Http
+	xGrabService.SourceType = SourceType_HttpHtml
 
 	xGrabService.GrabInterval = 5 * time.Minute
 	xGrabService.TimeOutInterval = 10 * time.Second //time.Hour, time.Minute, time.Second
@@ -317,7 +317,7 @@ func TestServiceGrabLoggin(t *testing.T) {
 	xGrabService.Name = "localtest"
 	xGrabService.Url = "http://localhost:8000"
 
-	xGrabService.SourceType = SourceType_Http
+	xGrabService.SourceType = SourceType_HttpHtml
 
 	xGrabService.GrabInterval = 5 * time.Minute
 	xGrabService.TimeOutInterval = 10 * time.Second //time.Hour, time.Minute, time.Second
@@ -401,6 +401,123 @@ func TestServiceGrabLoggin(t *testing.T) {
 
 	tempDestInfo.Collection = ""
 	tempDestInfo.Desttype = "csv"
+
+	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
+	if e != nil {
+		t.Errorf("Error Found : ", e)
+	}
+
+	xGrabService.DestDbox["DATA01"] = &tempDestInfo
+	//=History===========================================================
+	xGrabService.HistoryPath = "E:\\data\\vale\\history\\"
+	xGrabService.HistoryRecPath = "E:\\data\\vale\\historyrec\\"
+	//===================================================================
+
+	e = xGrabService.StartService()
+	if e != nil {
+		t.Errorf("Error Found : ", e)
+	} else {
+
+		for i := 0; i < 100; i++ {
+			fmt.Printf(".")
+			time.Sleep(1000 * time.Millisecond)
+		}
+
+		e = xGrabService.StopService()
+		if e != nil {
+			t.Errorf("Error Found : ", e)
+		}
+	}
+}
+
+func TestServiceGrabDocument(t *testing.T) {
+	var e error
+
+	xGrabService := NewGrabService()
+	xGrabService.Name = "iopriceindices"
+
+	xGrabService.SourceType = SourceType_DocExcel
+
+	xGrabService.GrabInterval = 5 * time.Minute
+	xGrabService.TimeOutInterval = 10 * time.Second //time.Hour, time.Minute, time.Second
+
+	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, "seconds")
+
+	//==must have grabconf and Connection info inside grabconf         ===========================================
+	// mapValConfig, e := toolkit.ToM(mapVal.Get("grabconf", nil).(map[string]interface{}))
+	// mapConnVal, e := toolkit.ToM(mapValConfig.Get("connectioninfo", nil).(map[string]interface{}))
+
+	ci := dbox.ConnectionInfo{}
+
+	ci.Host = "E:\\data\\sample\\IO Price Indices.xlsm"
+	// ci.Database = mapConnVal.Get("database", "").(string)
+	// ci.UserName = mapConnVal.Get("userName", "").(string)
+	// ci.Password = mapConnVal.Get("password", "").(string)
+
+	// if have setting inside of connection info
+	// ci.Settings, e = toolkit.ToM(tempSetting.(map[string]interface{}))
+	ci.Settings = nil
+
+	xGrabService.ServGetData, e = NewGetDatabase(ci.Host, "xlsx", &ci)
+
+	//===================================================================
+
+	//==For Data Log          ===========================================
+
+	// 	logpath = tempLogConf.Get("logpath", "").(string)
+	// 	filename = tempLogConf.Get("filename", "").(string)
+	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
+
+	logpath := "E:\\data\\vale\\log"
+	filename := "LOG-LOCALXLSX-%s"
+	filepattern := "20060102"
+
+	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
+	if e != nil {
+		t.Errorf("Error Found : ", e)
+	}
+
+	xGrabService.Log = logconf
+	//===================================================================
+
+	//===================================================================
+	//==Data Setting and Destination Save =====================
+
+	xGrabService.ServGetData.CollectionSettings = make(map[string]*CollectionSetting)
+	xGrabService.DestDbox = make(map[string]*DestInfo)
+
+	// ==For Every Data Setting ===============================
+	tempDataSetting := CollectionSetting{}
+	tempDestInfo := DestInfo{}
+
+	// .Collection = mapxVal.Get("rowselector", "").(string)
+	tempDataSetting.Collection = "HIST"
+	tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &GrabColumn{Alias: "Date", Selector: "1"})
+	tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &GrabColumn{Alias: "Platts 62% Fe IODEX", Selector: "2"})
+	tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &GrabColumn{Alias: "Platts 65% Fe", Selector: "4"})
+	tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &GrabColumn{Alias: "TSI 62% Fe", Selector: "15"})
+	tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &GrabColumn{Alias: "TSI 65% Fe", Selector: "16"})
+	tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &GrabColumn{Alias: "TSI 62% Fe LOW ALUMINA", Selector: "17"})
+	tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &GrabColumn{Alias: "MB 62% Fe", Selector: "26"})
+	tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &GrabColumn{Alias: "MB 65% Fe", Selector: "29"})
+
+	// tempDataSetting.SetFilterCond(tempFilterCond)
+	// -Check "filtercond" in config-
+	// tempFilterCond, e = toolkit.ToM(mapxVal.Get("filtercond", nil).(map[string]interface{}))
+	// tempDataSetting.SetFilterCond(tempFilterCond)
+
+	xGrabService.ServGetData.CollectionSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
+
+	ci = dbox.ConnectionInfo{}
+	ci.Host = "localhost:27017"
+	ci.Database = "valegrab"
+	ci.UserName = ""
+	ci.Password = ""
+	// ci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",")
+	// setting will be depend on config file
+
+	tempDestInfo.Collection = "iopriceindices"
+	tempDestInfo.Desttype = "mongo"
 
 	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
 	if e != nil {
