@@ -107,6 +107,20 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		grabConfig.SetFormValues(dataurl)
 	}
 
+	grabDataConf, _ := toolkit.ToM(data["grabconf"])
+
+	isAuthType := grabDataConf.Has("authtype")
+	if isAuthType {
+		grabConfig.AuthType = grabDataConf["authtype"].(string)
+		grabConfig.LoginUrl = grabDataConf["loginurl"].(string)   //"http://localhost:8000/login"
+		grabConfig.LogoutUrl = grabDataConf["logouturl"].(string) //"http://localhost:8000/logout"
+
+		grabConfig.LoginValues = toolkit.M{}.
+			Set("name", grabDataConf["loginvalues"].(map[string]interface{})["name"].(string)).
+			Set("password", grabDataConf["loginvalues"].(map[string]interface{})["password"].(string))
+
+	}
+
 	xGrabService.ServGrabber = sdt.NewGrabber(xGrabService.Url, data["calltype"].(string), &grabConfig)
 
 	logconfToMap, _ := toolkit.ToM(data["logconf"])
@@ -153,7 +167,9 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 					}
 				}
 			}
-			tempDataSetting.RowDeleteCond = toolkit.M{}.Set(condition, orCondition)
+			// tempDataSetting.RowDeleteCond = toolkit.M{}.Set(condition, orCondition)
+			tempFilterCond := toolkit.M{}.Set(condition, orCondition)
+			tempDataSetting.SetFilterCond(tempFilterCond)
 		}
 
 		xGrabService.ServGrabber.DataSettings[dataToMap["name"].(string)] = &tempDataSetting //DATA01 use name in datasettings
@@ -187,8 +203,11 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		if hasSettings := connToMap.Has("settings"); !hasSettings {
 			ci.Settings = nil
 		} else {
-			settingToMap, _ := toolkit.ToM(connToMap["settings"])
-			ci.Settings = toolkit.M{}.Set("useheader", settingToMap["useheader"].(bool)).Set("delimiter", settingToMap["delimiter"])
+			settingToMap, e := toolkit.ToM(connToMap["settings"])
+			if e != nil {
+				return nil, e.Error()
+			}
+			ci.Settings = settingToMap //toolkit.M{}.Set("useheader", settingToMap["useheader"].(bool)).Set("delimiter", settingToMap["delimiter"])
 		}
 
 		if hasCollection := connToMap.Has("collection"); !hasCollection {
@@ -207,33 +226,8 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		xGrabService.DestDbox[dataToMap["name"].(string)] = &tempDestInfo
 
 		//=History===========================================================
-		// dateNow := time.Now()
-		// dateFormat := dateNow.Format("200601")
-
-		// hPath := fmt.Sprintf("%s%s-%s.csv", historyPath, xGrabService.Name, dateFormat)
 		xGrabService.HistoryPath = historyPath       //"E:\\data\\vale\\history\\"
 		xGrabService.HistoryRecPath = historyRecPath //"E:\\data\\vale\\historyrec\\"
-		// tempHistInfo := sdt.DestInfo{}
-		// hci := dbox.ConnectionInfo{}
-		// dateNow := time.Now()
-		// dateFormat := dateNow.Format("20060102")
-		// historyPath := fmt.Sprintf("%s%s-%s.csv", historyPath, xGrabService.Name, dateFormat)
-
-		// hci.Host = historyPath
-		// hci.Database = ""
-		// hci.UserName = ""
-		// hci.Password = ""
-		// hci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",").Set("newfile", true)
-
-		// tempHistInfo.Collection = ""
-		// tempHistInfo.Desttype = "csv"
-
-		// tempHistInfo.IConnection, e = dbox.NewConnection(tempHistInfo.Desttype, &hci)
-		// if e != nil {
-		// 	return nil, e.Error()
-		// }
-
-		// xGrabService.HistDbox = &tempHistInfo
 		//===================================================================
 	}
 
