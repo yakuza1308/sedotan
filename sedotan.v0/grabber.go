@@ -89,7 +89,7 @@ func (g *Grabber) GetConfig() (toolkit.M, error) {
 		for key, val := range parm {
 			switch {
 			case strings.Contains(val.(string), "time.Now()"):
-				// time.Now(), Date2String(YYYYMMDD) = time.Now().Date2String(YYYYMMDD)
+				// time.Now(), Date2String(YYYYMMDD) = Date2String(time.Now(),YYYYMMDD)
 				format := ""
 				if strings.Contains(val.(string), "Date2String") {
 					format = strings.Replace(strings.Replace(val.(string), "Date2String(time.Now(),", "", -1), ")", "", -1)

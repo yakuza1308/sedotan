@@ -2,7 +2,7 @@ package sedotan
 
 import (
 	// "bytes"
-	// "fmt"
+	"fmt"
 	// "github.com/eaciit/cast"
 	"github.com/eaciit/dbox"
 	_ "github.com/eaciit/dbox/dbc/csv"
@@ -10,7 +10,7 @@ import (
 	_ "github.com/eaciit/dbox/dbc/mongo"
 	_ "github.com/eaciit/dbox/dbc/xlsx"
 	"github.com/eaciit/toolkit"
-	// "reflect"
+	"reflect"
 	// "regexp"
 	"errors"
 	// "strings"
@@ -28,6 +28,7 @@ type CollectionSetting struct {
 	Collection   string
 	SelectColumn []*GrabColumn
 	FilterCond   toolkit.M
+	filterDbox   *dbox.Filter
 }
 
 type GetDatabase struct {
@@ -72,9 +73,10 @@ func (ds *CollectionSetting) Column(i int, column *GrabColumn) *GrabColumn {
 	return column
 }
 
-func (ds *CollectionSetting) SetFilterCond(filter toolkit.M) {
-	ds.FilterCond = filter
-}
+// func (ds *CollectionSetting) SetFilterCond(filter toolkit.M) {
+// 	ds.FilterCond = filter
+// 	ds.filterDbox =
+// }
 
 func (g *GetDatabase) ResultFromDatabase(dataSettingId string, out interface{}) error {
 
@@ -99,7 +101,15 @@ func (g *GetDatabase) ResultFromDatabase(dataSettingId string, out interface{}) 
 		iQ.Select(val.Selector)
 	}
 
+	if len(g.CollectionSettings[dataSettingId].FilterCond) > 0 {
+		fmt.Println("TEST 105")
+		// iQ.Where(dbox.Eq("1", "2"))
+		// iQ.Where(filterCondition(ds.FilterCond))
+		iQ.Where(g.CollectionSettings[dataSettingId].filterDbox)
+	}
 	//filter condition Not Yet Implemented
+	// b, e := g.CollectionSettings[dataSettingId].filterDbox.Build()
+	// fmt.Println("getdb line 151, error : ", e, "|| value : ", toolkit.JsonString(b))
 
 	csr, e := iQ.Cursor(nil)
 
@@ -133,4 +143,67 @@ func (g *GetDatabase) ResultFromDatabase(dataSettingId string, out interface{}) 
 		return edecode
 	}
 	return nil
+}
+
+func (ds *CollectionSetting) SetFilterCond(filter toolkit.M) {
+	if filter == nil {
+		ds.FilterCond = toolkit.M{}
+	} else {
+		ds.FilterCond = filter
+	}
+
+	if len(ds.FilterCond) > 0 {
+		ds.filterDbox = filterCondition(ds.FilterCond)
+	}
+}
+
+func filterCondition(cond toolkit.M) *dbox.Filter {
+	fb := new(dbox.Filter)
+
+	for key, val := range cond {
+		if key == "$and" || key == "$or" {
+			afb := []*dbox.Filter{}
+			for _, sVal := range val.([]interface{}) {
+				rVal := sVal.(map[string]interface{})
+				mVal := toolkit.M{}
+				for rKey, mapVal := range rVal {
+					mVal.Set(rKey, mapVal)
+				}
+
+				afb = append(afb, filterCondition(mVal))
+			}
+
+			if key == "$and" {
+				fb = dbox.And(afb...)
+			} else {
+				fb = dbox.Or(afb...)
+			}
+
+		} else {
+			if reflect.ValueOf(val).Kind() == reflect.Map {
+				mVal := val.(map[string]interface{})
+				tomVal, _ := toolkit.ToM(mVal)
+				switch {
+				case tomVal.Has("$eq"):
+					fb = dbox.Eq(key, tomVal["$eq"].(string))
+				case tomVal.Has("$ne"):
+					fb = dbox.Ne(key, tomVal["$ne"].(string))
+				case tomVal.Has("$regex"):
+					fb = dbox.Contains(key, tomVal["$regex"].(string))
+				case tomVal.Has("$gt"):
+					fb = dbox.Gt(key, tomVal["$gt"].(string))
+				case tomVal.Has("$gte"):
+					fb = dbox.Gte(key, tomVal["$gte"].(string))
+				case tomVal.Has("$lt"):
+					fb = dbox.Lt(key, tomVal["$lt"].(string))
+				case tomVal.Has("$lte"):
+					fb = dbox.Lte(key, tomVal["$lte"].(string))
+				}
+			} else {
+				fb = dbox.Eq(key, val)
+			}
+		}
+	}
+
+	return fb
 }
