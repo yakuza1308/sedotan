@@ -149,14 +149,12 @@ func (g *GrabService) execService() {
 					if e != nil || !(g.LastGrabStat) {
 						g.ErrorNotes = fmt.Sprintf("[%s-%s] Fetch Result Failed : ", g.Name, key, e)
 						g.Log.AddLog(g.ErrorNotes, "ERROR")
-						continue
 					}
 
 					e = g.DestDbox[key].IConnection.Connect()
 					if e != nil {
 						g.ErrorNotes = fmt.Sprintf("[%s-%s] Connect to destination failed [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e)
 						g.Log.AddLog(g.ErrorNotes, "ERROR")
-						continue
 					}
 
 					var q dbox.IQuery
@@ -343,7 +341,7 @@ func (g *GrabService) validateService() (bool, error) {
 		return false, errors.New("Name Not Found")
 	}
 
-	fmt.Println("\n TEST LINE 346", g.SourceType)
+	// fmt.Println("\n TEST LINE 346", g.SourceType)
 	// if g.SourceType == "" {
 	// 	return false, errors.New("Source Type Not Set")
 	// }

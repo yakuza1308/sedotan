@@ -183,252 +183,252 @@ import (
 // 	}
 // }
 
-func TestServiceGrabPost(t *testing.T) {
+// func TestServiceGrabPost(t *testing.T) {
 
-	xGrabService := NewGrabService()
-	xGrabService.Name = "irondcecom"
-	xGrabService.Url = "http://www.dce.com.cn/PublicWeb/MainServlet"
+// 	xGrabService := NewGrabService()
+// 	xGrabService.Name = "irondcecom"
+// 	xGrabService.Url = "http://www.dce.com.cn/PublicWeb/MainServlet"
 
-	xGrabService.SourceType = SourceType_HttpHtml
+// 	xGrabService.SourceType = SourceType_HttpHtml
 
-	xGrabService.GrabInterval = 5 * time.Minute
-	xGrabService.TimeOutInterval = 10 * time.Second //time.Hour, time.Minute, time.Second
+// 	xGrabService.GrabInterval = 5 * time.Minute
+// 	xGrabService.TimeOutInterval = 10 * time.Second //time.Hour, time.Minute, time.Second
 
-	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, "seconds")
+// 	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, "seconds")
 
-	//==For Data Grab Config/Data Grabber          ===========================================
-	// tempGrab.ServGrabber = sedotan.NewGrabber(tempGrab.Url, mapVal.Get("calltype", "").(string), &GrabConfig)
+// 	//==For Data Grab Config/Data Grabber          ===========================================
+// 	// tempGrab.ServGrabber = sedotan.NewGrabber(tempGrab.Url, mapVal.Get("calltype", "").(string), &GrabConfig)
 
-	grabConfig := Config{}
+// 	grabConfig := Config{}
 
-	dataurl := toolkit.M{}
-	dataurl["Pu00231_Input.trade_date"] = "20151214"
-	dataurl["Pu00231_Input.variety"] = "i"
-	dataurl["Pu00231_Input.trade_type"] = "0"
-	dataurl["Submit"] = "Go"
-	dataurl["action"] = "Pu00231_result"
+// 	dataurl := toolkit.M{}
+// 	dataurl["Pu00231_Input.trade_date"] = "20151214"
+// 	dataurl["Pu00231_Input.variety"] = "i"
+// 	dataurl["Pu00231_Input.trade_type"] = "0"
+// 	dataurl["Submit"] = "Go"
+// 	dataurl["action"] = "Pu00231_result"
 
-	grabConfig.SetFormValues(dataurl)
+// 	grabConfig.SetFormValues(dataurl)
 
-	// if has grabconfig
+// 	// if has grabconfig
 
-	// CallType     string
-	// FormValues   toolkit.M
-	// AuthType     string
-	// AuthUserId   string
-	// AuthPassword string
-	//==================
+// 	// CallType     string
+// 	// FormValues   toolkit.M
+// 	// AuthType     string
+// 	// AuthUserId   string
+// 	// AuthPassword string
+// 	//==================
 
-	xGrabService.ServGrabber = NewGrabber(xGrabService.Url, "POST", &grabConfig)
+// 	xGrabService.ServGrabber = NewGrabber(xGrabService.Url, "POST", &grabConfig)
 
-	//===================================================================
+// 	//===================================================================
 
-	//==For Data Log          ===========================================
+// 	//==For Data Log          ===========================================
 
-	// 	logpath = tempLogConf.Get("logpath", "").(string)
-	// 	filename = tempLogConf.Get("filename", "").(string)
-	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
+// 	// 	logpath = tempLogConf.Get("logpath", "").(string)
+// 	// 	filename = tempLogConf.Get("filename", "").(string)
+// 	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
 
-	logpath := "E:\\data\\vale\\log"
-	filename := "LOG-GRABDCETEST-%s"
-	filepattern := "20060102"
+// 	logpath := "E:\\data\\vale\\log"
+// 	filename := "LOG-GRABDCETEST-%s"
+// 	filepattern := "20060102"
 
-	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
-	if e != nil {
-		t.Errorf("Error Found : ", e)
-	}
+// 	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
+// 	if e != nil {
+// 		t.Errorf("Error Found : ", e)
+// 	}
 
-	xGrabService.Log = logconf
-	//===================================================================
+// 	xGrabService.Log = logconf
+// 	//===================================================================
 
-	//===================================================================
-	//==Data Setting and Destination Save =====================
+// 	//===================================================================
+// 	//==Data Setting and Destination Save =====================
 
-	xGrabService.ServGrabber.DataSettings = make(map[string]*DataSetting)
-	xGrabService.DestDbox = make(map[string]*DestInfo)
+// 	xGrabService.ServGrabber.DataSettings = make(map[string]*DataSetting)
+// 	xGrabService.DestDbox = make(map[string]*DestInfo)
 
-	// ==For Every Data Setting ===============================
-	tempDataSetting := DataSetting{}
-	tempDestInfo := DestInfo{}
+// 	// ==For Every Data Setting ===============================
+// 	tempDataSetting := DataSetting{}
+// 	tempDestInfo := DestInfo{}
 
-	tempDataSetting.RowSelector = "table .table tbody tr"
-	tempDataSetting.Column(0, &GrabColumn{Alias: "Contract", Selector: "td:nth-child(1)"})
-	tempDataSetting.Column(0, &GrabColumn{Alias: "Open", Selector: "td:nth-child(2)"})
-	tempDataSetting.Column(0, &GrabColumn{Alias: "High", Selector: "td:nth-child(3)"})
+// 	tempDataSetting.RowSelector = "table .table tbody tr"
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "Contract", Selector: "td:nth-child(1)"})
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "Open", Selector: "td:nth-child(2)"})
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "High", Selector: "td:nth-child(3)"})
 
-	andCondition := []interface{}{}
-	andCondition = append(andCondition, map[string]interface{}{"Contract": map[string]interface{}{"$ne": "Contract"}})
-	andCondition = append(andCondition, map[string]interface{}{"Contract": map[string]interface{}{"$ne": "Iron Ore Subtotal"}})
-	andCondition = append(andCondition, map[string]interface{}{"Contract": map[string]interface{}{"$ne": "Total"}})
+// 	andCondition := []interface{}{}
+// 	andCondition = append(andCondition, map[string]interface{}{"Contract": map[string]interface{}{"$ne": "Contract"}})
+// 	andCondition = append(andCondition, map[string]interface{}{"Contract": map[string]interface{}{"$ne": "Iron Ore Subtotal"}})
+// 	andCondition = append(andCondition, map[string]interface{}{"Contract": map[string]interface{}{"$ne": "Total"}})
 
-	// orCondition[0] = map[string]string{"Contract": "Contract"}
-	// orCondition[1] = map[string]string{"Contract": "Iron Ore Subtotal"}
-	// orCondition[2] = map[string]string{"Contract": "Total"}
+// 	// orCondition[0] = map[string]string{"Contract": "Contract"}
+// 	// orCondition[1] = map[string]string{"Contract": "Iron Ore Subtotal"}
+// 	// orCondition[2] = map[string]string{"Contract": "Total"}
 
-	tempFilterCond := toolkit.M{}.Set("$and", andCondition)
-	tempDataSetting.SetFilterCond(tempFilterCond)
-	// -Check "filtercond" in config-
-	// tempFilterCond, e = toolkit.ToM(mapxVal.Get("filtercond", nil).(map[string]interface{}))
-	// tempDataSetting.SetFilterCond(tempFilterCond)
+// 	tempFilterCond := toolkit.M{}.Set("$and", andCondition)
+// 	tempDataSetting.SetFilterCond(tempFilterCond)
+// 	// -Check "filtercond" in config-
+// 	// tempFilterCond, e = toolkit.ToM(mapxVal.Get("filtercond", nil).(map[string]interface{}))
+// 	// tempDataSetting.SetFilterCond(tempFilterCond)
 
-	xGrabService.ServGrabber.DataSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
+// 	xGrabService.ServGrabber.DataSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
 
-	ci := dbox.ConnectionInfo{}
-	ci.Host = "E:\\data\\vale\\Data_GrabIronTest.csv"
-	ci.Database = ""
-	ci.UserName = ""
-	ci.Password = ""
-	ci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",")
+// 	ci := dbox.ConnectionInfo{}
+// 	ci.Host = "E:\\data\\vale\\Data_GrabIronTest.csv"
+// 	ci.Database = ""
+// 	ci.UserName = ""
+// 	ci.Password = ""
+// 	ci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",")
 
-	tempDestInfo.Collection = ""
-	tempDestInfo.Desttype = "csv"
+// 	tempDestInfo.Collection = ""
+// 	tempDestInfo.Desttype = "csv"
 
-	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
-	if e != nil {
-		t.Errorf("Error Found : ", e)
-	}
+// 	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
+// 	if e != nil {
+// 		t.Errorf("Error Found : ", e)
+// 	}
 
-	xGrabService.DestDbox["DATA01"] = &tempDestInfo
-	//=History===========================================================
-	xGrabService.HistoryPath = "E:\\data\\vale\\history\\"
-	xGrabService.HistoryRecPath = "E:\\data\\vale\\historyrec\\"
-	//===================================================================
+// 	xGrabService.DestDbox["DATA01"] = &tempDestInfo
+// 	//=History===========================================================
+// 	xGrabService.HistoryPath = "E:\\data\\vale\\history\\"
+// 	xGrabService.HistoryRecPath = "E:\\data\\vale\\historyrec\\"
+// 	//===================================================================
 
-	e = xGrabService.StartService()
-	if e != nil {
-		t.Errorf("Error Found : ", e)
-	} else {
+// 	e = xGrabService.StartService()
+// 	if e != nil {
+// 		t.Errorf("Error Found : ", e)
+// 	} else {
 
-		for i := 0; i < 100; i++ {
-			fmt.Printf(".")
-			time.Sleep(1000 * time.Millisecond)
-		}
+// 		for i := 0; i < 100; i++ {
+// 			fmt.Printf(".")
+// 			time.Sleep(1000 * time.Millisecond)
+// 		}
 
-		e = xGrabService.StopService()
-		if e != nil {
-			t.Errorf("Error Found : ", e)
-		}
-	}
-}
+// 		e = xGrabService.StopService()
+// 		if e != nil {
+// 			t.Errorf("Error Found : ", e)
+// 		}
+// 	}
+// }
 
-func TestServiceGrabLoggin(t *testing.T) {
+// func TestServiceGrabLoggin(t *testing.T) {
 
-	xGrabService := NewGrabService()
-	xGrabService.Name = "localtest"
-	xGrabService.Url = "http://localhost:8000"
+// 	xGrabService := NewGrabService()
+// 	xGrabService.Name = "localtest"
+// 	xGrabService.Url = "http://localhost:8000"
 
-	xGrabService.SourceType = SourceType_HttpHtml
+// 	xGrabService.SourceType = SourceType_HttpHtml
 
-	xGrabService.GrabInterval = 5 * time.Minute
-	xGrabService.TimeOutInterval = 10 * time.Second //time.Hour, time.Minute, time.Second
+// 	xGrabService.GrabInterval = 5 * time.Minute
+// 	xGrabService.TimeOutInterval = 10 * time.Second //time.Hour, time.Minute, time.Second
 
-	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, "seconds")
+// 	xGrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", 1, "seconds")
 
-	//==For Data Grab Config/Data Grabber          ===========================================
-	// tempGrab.ServGrabber = sedotan.NewGrabber(tempGrab.Url, mapVal.Get("calltype", "").(string), &GrabConfig)
+// 	//==For Data Grab Config/Data Grabber          ===========================================
+// 	// tempGrab.ServGrabber = sedotan.NewGrabber(tempGrab.Url, mapVal.Get("calltype", "").(string), &GrabConfig)
 
-	grabConfig := Config{}
+// 	grabConfig := Config{}
 
-	grabConfig.AuthType = "session"
-	// grabConfig.AuthUserId = mapValConfig.Get("authuserid", "").(string)
-	// grabConfig.AuthPassword = mapValConfig.Get("authpassword", "").(string)
+// 	grabConfig.AuthType = "session"
+// 	// grabConfig.AuthUserId = mapValConfig.Get("authuserid", "").(string)
+// 	// grabConfig.AuthPassword = mapValConfig.Get("authpassword", "").(string)
 
-	grabConfig.LoginUrl = "http://localhost:8000/login"
-	grabConfig.LogoutUrl = "http://localhost:8000/logout"
-	grabConfig.LoginValues = toolkit.M{}.Set("name", "alip").Set("password", "test")
+// 	grabConfig.LoginUrl = "http://localhost:8000/login"
+// 	grabConfig.LogoutUrl = "http://localhost:8000/logout"
+// 	grabConfig.LoginValues = toolkit.M{}.Set("name", "alip").Set("password", "test")
 
-	// if has grabconfig
+// 	// if has grabconfig
 
-	// CallType     string
-	// FormValues   toolkit.M
-	// AuthType     string
-	// AuthUserId   string
-	// AuthPassword string
-	//==================
+// 	// CallType     string
+// 	// FormValues   toolkit.M
+// 	// AuthType     string
+// 	// AuthUserId   string
+// 	// AuthPassword string
+// 	//==================
 
-	xGrabService.ServGrabber = NewGrabber(xGrabService.Url, "POST", &grabConfig)
+// 	xGrabService.ServGrabber = NewGrabber(xGrabService.Url, "POST", &grabConfig)
 
-	//===================================================================
+// 	//===================================================================
 
-	//==For Data Log          ===========================================
+// 	//==For Data Log          ===========================================
 
-	// 	logpath = tempLogConf.Get("logpath", "").(string)
-	// 	filename = tempLogConf.Get("filename", "").(string)
-	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
+// 	// 	logpath = tempLogConf.Get("logpath", "").(string)
+// 	// 	filename = tempLogConf.Get("filename", "").(string)
+// 	// 	filepattern = tempLogConf.Get("filepattern", "").(string)
 
-	logpath := "E:\\data\\vale\\log"
-	filename := "LOG-LOCALTEST-%s"
-	filepattern := "20060102"
+// 	logpath := "E:\\data\\vale\\log"
+// 	filename := "LOG-LOCALTEST-%s"
+// 	filepattern := "20060102"
 
-	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
-	if e != nil {
-		t.Errorf("Error Found : ", e)
-	}
+// 	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
+// 	if e != nil {
+// 		t.Errorf("Error Found : ", e)
+// 	}
 
-	xGrabService.Log = logconf
-	//===================================================================
+// 	xGrabService.Log = logconf
+// 	//===================================================================
 
-	//===================================================================
-	//==Data Setting and Destination Save =====================
+// 	//===================================================================
+// 	//==Data Setting and Destination Save =====================
 
-	xGrabService.ServGrabber.DataSettings = make(map[string]*DataSetting)
-	xGrabService.DestDbox = make(map[string]*DestInfo)
+// 	xGrabService.ServGrabber.DataSettings = make(map[string]*DataSetting)
+// 	xGrabService.DestDbox = make(map[string]*DestInfo)
 
-	// ==For Every Data Setting ===============================
-	tempDataSetting := DataSetting{}
-	tempDestInfo := DestInfo{}
+// 	// ==For Every Data Setting ===============================
+// 	tempDataSetting := DataSetting{}
+// 	tempDestInfo := DestInfo{}
 
-	tempDataSetting.RowSelector = "table tr"
-	tempDataSetting.Column(0, &GrabColumn{Alias: "Number", Selector: "td:nth-child(1)"})
-	tempDataSetting.Column(0, &GrabColumn{Alias: "FirstName", Selector: "td:nth-child(2)"})
-	tempDataSetting.Column(0, &GrabColumn{Alias: "LastName", Selector: "td:nth-child(3)"})
-	tempDataSetting.Column(0, &GrabColumn{Alias: "Points", Selector: "td:nth-child(4)"})
+// 	tempDataSetting.RowSelector = "table tr"
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "Number", Selector: "td:nth-child(1)"})
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "FirstName", Selector: "td:nth-child(2)"})
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "LastName", Selector: "td:nth-child(3)"})
+// 	tempDataSetting.Column(0, &GrabColumn{Alias: "Points", Selector: "td:nth-child(4)"})
 
-	tempFilterCond := toolkit.M{}.Set("FirstName", map[string]interface{}{"$ne": ""})
-	tempDataSetting.SetFilterCond(tempFilterCond)
-	// -Check "filtercond" in config-
-	// tempFilterCond, e = toolkit.ToM(mapxVal.Get("filtercond", nil).(map[string]interface{}))
-	// tempDataSetting.SetFilterCond(tempFilterCond)
+// 	tempFilterCond := toolkit.M{}.Set("FirstName", map[string]interface{}{"$ne": ""})
+// 	tempDataSetting.SetFilterCond(tempFilterCond)
+// 	// -Check "filtercond" in config-
+// 	// tempFilterCond, e = toolkit.ToM(mapxVal.Get("filtercond", nil).(map[string]interface{}))
+// 	// tempDataSetting.SetFilterCond(tempFilterCond)
 
-	xGrabService.ServGrabber.DataSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
+// 	xGrabService.ServGrabber.DataSettings["DATA01"] = &tempDataSetting //DATA01 use name in datasettings
 
-	ci := dbox.ConnectionInfo{}
-	ci.Host = "E:\\data\\vale\\Data_GrabLocal.csv"
-	ci.Database = ""
-	ci.UserName = ""
-	ci.Password = ""
-	ci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",")
+// 	ci := dbox.ConnectionInfo{}
+// 	ci.Host = "E:\\data\\vale\\Data_GrabLocal.csv"
+// 	ci.Database = ""
+// 	ci.UserName = ""
+// 	ci.Password = ""
+// 	ci.Settings = toolkit.M{}.Set("useheader", true).Set("delimiter", ",")
 
-	tempDestInfo.Collection = ""
-	tempDestInfo.Desttype = "csv"
+// 	tempDestInfo.Collection = ""
+// 	tempDestInfo.Desttype = "csv"
 
-	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
-	if e != nil {
-		t.Errorf("Error Found : ", e)
-	}
+// 	tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
+// 	if e != nil {
+// 		t.Errorf("Error Found : ", e)
+// 	}
 
-	xGrabService.DestDbox["DATA01"] = &tempDestInfo
-	//=History===========================================================
-	xGrabService.HistoryPath = "E:\\data\\vale\\history\\"
-	xGrabService.HistoryRecPath = "E:\\data\\vale\\historyrec\\"
-	//===================================================================
+// 	xGrabService.DestDbox["DATA01"] = &tempDestInfo
+// 	//=History===========================================================
+// 	xGrabService.HistoryPath = "E:\\data\\vale\\history\\"
+// 	xGrabService.HistoryRecPath = "E:\\data\\vale\\historyrec\\"
+// 	//===================================================================
 
-	e = xGrabService.StartService()
-	if e != nil {
-		t.Errorf("Error Found : ", e)
-	} else {
+// 	e = xGrabService.StartService()
+// 	if e != nil {
+// 		t.Errorf("Error Found : ", e)
+// 	} else {
 
-		for i := 0; i < 100; i++ {
-			fmt.Printf(".")
-			time.Sleep(1000 * time.Millisecond)
-		}
+// 		for i := 0; i < 100; i++ {
+// 			fmt.Printf(".")
+// 			time.Sleep(1000 * time.Millisecond)
+// 		}
 
-		e = xGrabService.StopService()
-		if e != nil {
-			t.Errorf("Error Found : ", e)
-		}
-	}
-}
+// 		e = xGrabService.StopService()
+// 		if e != nil {
+// 			t.Errorf("Error Found : ", e)
+// 		}
+// 	}
+// }
 
 func TestServiceGrabDocument(t *testing.T) {
 	var e error
