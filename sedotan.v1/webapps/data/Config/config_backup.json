@@ -4,13 +4,13 @@
     "url": "http://www.shfe.com.cn/en/products/Gold/",
     "calltype": "GET",
     "intervaltype": "seconds",
-    "grabinterval": 300,
+    "grabinterval": 20,
     "timeoutinterval": 5,
     "sourcetype": "SourceType_Http",
     "logconf": 
       {
         "logpath": "E:\\data\\vale\\log",
-        "filename": "LOG-GRABSHFE-%s",
+        "filename": "LOG-GRABSHFE",
         "filepattern": "20060102"
       },
     "datasettings": 
@@ -129,14 +129,14 @@
           }
       },
     "intervaltype": "seconds",
-    "grabinterval": 300,
+    "grabinterval": 20,
     "timeoutinterval": 5,
     "sourcetype": "SourceType_Http",
     "logconf": 
       {
         "logpath": "E:\\data\\vale\\log",
-        "filename": "LOG-GRABDCE-%s",
-        "filepattern": "YYYYMMDD"
+        "filename": "LOG-GRABDCE",
+        "filepattern": "20060102"
       },
     "datasettings": 
       [
@@ -247,7 +247,7 @@
     "logconf": 
       {
         "logpath": "E:\\data\\vale\\log",
-        "filename": "LOG-TEST-%s",
+        "filename": "LOG-TEST",
         "filepattern": "20060102"
       },
     "datasettings": 
@@ -306,7 +306,7 @@
     "logconf": 
       {
         "logpath": "E:\\data\\vale\\log",
-        "filename": "LOG-SHFERB1605-%s",
+        "filename": "LOG-SHFERB1605",
         "filepattern": "20060102"
       },
     "datasettings": 
@@ -394,13 +394,13 @@
     "url": "http://www.barchart.com/futures/exchanges.php?exch=dce",
     "calltype": "GET",
     "intervaltype": "seconds",
-    "grabinterval": 300,
+    "grabinterval": 20,
     "timeoutinterval": 5,
     "sourcetype": "SourceType_Http",
     "logconf": 
       {
         "logpath": "E:\\data\\vale\\log",
-        "filename": "LOG-DCEYYK16-%s",
+        "filename": "LOG-DCEYYK16",
         "filepattern": "20060102"
       },
     "datasettings": 

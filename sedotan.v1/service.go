@@ -343,7 +343,7 @@ func (g *GrabService) validateService() (bool, error) {
 		return false, errors.New("Name Not Found")
 	}
 
-	fmt.Println("\n TEST LINE 346", g.SourceType)
+	// fmt.Println("\n TEST LINE 346", g.SourceType)
 	// if g.SourceType == "" {
 	// 	return false, errors.New("Source Type Not Set")
 	// }

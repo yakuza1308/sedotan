@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	filename = wd + "data\\Config\\config.json"
+	filename = wd + "data\\Config\\config_backup.json"
 )
 
 type DashboardController struct {
@@ -72,7 +72,10 @@ func (a *DashboardController) Startservice(k *knot.WebContext) interface{} {
 	}
 
 	ds, _ := Getquery(t.NameId)
-	_, isRun := modules.Process(ds)
+	er, isRun := modules.Process(ds)
+	if er != nil {
+		return er.Error()
+	}
 
 	return isRun
 }
@@ -89,7 +92,10 @@ func (a *DashboardController) Stopservice(k *knot.WebContext) interface{} {
 	}
 
 	ds, _ := Getquery(t.NameId)
-	_, isRun := modules.StopProcess(ds)
+	er, isRun := modules.StopProcess(ds)
+	if er != nil {
+		return er.Error()
+	}
 
 	return isRun
 }
