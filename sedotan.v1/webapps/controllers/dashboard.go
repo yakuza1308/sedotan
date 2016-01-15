@@ -6,12 +6,13 @@ import (
 	_ "github.com/eaciit/dbox/dbc/json"
 	"github.com/eaciit/knot/knot.v1"
 	"github.com/eaciit/sedotan/sedotan.v1/webapps/modules"
+	"github.com/eaciit/toolkit"
 	"reflect"
 	"strings"
 )
 
 var (
-	filename = wd + "data\\Config\\config.json"
+	filename = wd + "data\\Config\\config_backup.json"
 )
 
 type DashboardController struct {
@@ -55,9 +56,14 @@ func (a *DashboardController) Griddashboard(k *knot.WebContext) interface{} {
 	defer c.Close()
 	csr, e := c.NewQuery().Select("nameid", "url", "grabinterval", "intervaltype", "datasettings").Cursor(nil)
 	defer csr.Close()
-	ds, e := csr.Fetch(nil, 0, false)
 
-	return ds.Data
+	result := make([]toolkit.M, 0)
+	e = csr.Fetch(&result, 0, false)
+	if e != nil {
+		return e
+	}
+
+	return result
 }
 
 func (a *DashboardController) Startservice(k *knot.WebContext) interface{} {
@@ -72,7 +78,10 @@ func (a *DashboardController) Startservice(k *knot.WebContext) interface{} {
 	}
 
 	ds, _ := Getquery(t.NameId)
-	_, isRun := modules.Process(ds)
+	er, isRun := modules.Process(ds)
+	if er != nil {
+		return er.Error()
+	}
 
 	return isRun
 }
@@ -89,7 +98,10 @@ func (a *DashboardController) Stopservice(k *knot.WebContext) interface{} {
 	}
 
 	ds, _ := Getquery(t.NameId)
-	_, isRun := modules.StopProcess(ds)
+	er, isRun := modules.StopProcess(ds)
+	if er != nil {
+		return er.Error()
+	}
 
 	return isRun
 }
@@ -130,11 +142,12 @@ func Getquery(nameid string) ([]interface{}, error) {
 		return nil, e
 	}
 
-	ds, e := csr.Fetch(nil, 0, false)
+	result := make([]toolkit.M, 0)
+	e = csr.Fetch(&result, 0, false)
 	if e != nil {
 		return nil, e
 	}
-	return ds.Data, nil
+	return result, nil
 }
 
 func (a *DashboardController) Gethistory(k *knot.WebContext) interface{} {

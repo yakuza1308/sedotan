@@ -1,12 +1,12 @@
 [
   {
     "nameid": "iopriceindices",
-    "grabconfig": 
+    "grabconf": 
       {
         "doctype": "xlsx",
         "connectioninfo": 
           {
-            "host": "E:\\data\\sample\\IO Price Indices.xlsm"
+            "host": "E:\\data\\sample\\IO Price Indices.xlsx"
           }
       },
     "intervaltype": "seconds",
@@ -16,7 +16,7 @@
     "logconf": 
       {
         "logpath": "E:\\data\\vale\\log",
-        "filename": "LOG-IOPRICE-%s",
+        "filename": "LOG-IOPRICE",
         "filepattern": "20060102"
       },
     "datasettings": 
