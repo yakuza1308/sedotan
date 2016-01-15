@@ -25,7 +25,11 @@ type ConfigurationController struct {
 
 func (a *ConfigurationController) Default(k *knot.WebContext) interface{} {
 	k.Config.OutputType = knot.OutputTemplate
-	return ""
+	data := tk.M{}
+	d, _ := os.Getwd()
+	d = strings.Replace(d, "\\cli", "", -1)
+	data.Set("data_dir", d+"\\data\\Output\\")
+	return data
 }
 
 func (a *ConfigurationController) P(k *knot.WebContext) interface{} {
@@ -64,7 +68,7 @@ func (a *ConfigurationController) Save(k *knot.WebContext) interface{} {
 		fmt.Println("Found : ", e)
 	}
 
-	filename = wd + "data\\config.json"
+	filename = wd + "data\\Config\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
@@ -95,7 +99,7 @@ func (a *ConfigurationController) Delete(k *knot.WebContext) interface{} {
 	e := k.GetPayload(&d)
 	k.Config.OutputType = knot.OutputJson
 
-	filename = wd + "data\\config.json"
+	filename = wd + "data\\Config\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()
@@ -155,7 +159,7 @@ func (a *ConfigurationController) TestingDBOX(k *knot.WebContext) interface{} {
 func (a *ConfigurationController) GetData(k *knot.WebContext) interface{} {
 	k.Config.OutputType = knot.OutputJson
 
-	filename := wd + "data\\config.json"
+	filename := wd + "data\\Config\\config.json"
 	ci := &dbox.ConnectionInfo{filename, "", "", "", nil}
 	c, e := dbox.NewConnection("json", ci)
 	defer c.Close()

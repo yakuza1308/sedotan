@@ -17,7 +17,9 @@ import (
 type SourceTypeEnum int
 
 const (
-	SourceType_Http SourceTypeEnum = iota
+	SourceType_HttpHtml SourceTypeEnum = iota
+	SourceType_HttpJson
+	SourceType_DocExcel
 )
 
 type GrabService struct {
@@ -33,6 +35,7 @@ type GrabService struct {
 	Log                 *toolkit.LogEngine
 
 	ServGrabber *Grabber
+	ServGetData *GetDatabase
 
 	LastGrabExe  time.Time
 	NextGrabExe  time.Time
@@ -58,7 +61,7 @@ type DestInfo struct {
 
 func NewGrabService() *GrabService {
 	g := new(GrabService)
-	g.SourceType = SourceType_Http
+	g.SourceType = SourceType_HttpHtml
 	g.GrabInterval = 5 * time.Minute
 	g.TimeOutInterval = 1 * time.Minute
 	g.ServiceRunningStat = false
@@ -91,34 +94,67 @@ func (g *GrabService) execService() {
 			g.Log.AddLog(fmt.Sprintf("[%s] Grab Started %s", g.Name, g.Url), "INFO")
 			g.GrabCount += 1
 
-			if e := g.ServGrabber.Grab(nil); e != nil {
-				g.ErrorNotes = fmt.Sprintf("[%s] Grab Failed %s, repeat after %s :%s", g.Name, g.Url, g.TimeOutIntervalInfo, e)
-				g.Log.AddLog(g.ErrorNotes, "ERROR")
-				g.NextGrabExe = time.Now().Add(g.TimeOutInterval)
-				g.LastGrabStat = false
-				g.ErrorFound += 1
-				continue
-			} else {
-				g.Log.AddLog(fmt.Sprintf("[%s] Grab Success %s", g.Name, g.Url), "INFO")
+			keySetting := []string{}
+			switch g.SourceType {
+			case SourceType_HttpHtml, SourceType_HttpJson:
+				if e := g.ServGrabber.Grab(nil); e != nil {
+					g.ErrorNotes = fmt.Sprintf("[%s] Grab Failed %s, repeat after %s :%s", g.Name, g.Url, g.TimeOutIntervalInfo, e)
+					g.Log.AddLog(g.ErrorNotes, "ERROR")
+					g.NextGrabExe = time.Now().Add(g.TimeOutInterval)
+					g.LastGrabStat = false
+					g.ErrorFound += 1
+				} else {
+					g.Log.AddLog(fmt.Sprintf("[%s] Grab Success %s", g.Name, g.Url), "INFO")
+				}
+				for key, _ := range g.ServGrabber.Config.DataSettings {
+					keySetting = append(keySetting, key)
+				}
+				// keySetting = g.sGrabber.Config.DataSettings
+			case SourceType_DocExcel:
+				// e = g.sGetData.ResultFromDatabase(key, &docs)
+				// if e != nil {
+				// 	g.LastGrabStat = false
+				// }
+				for key, _ := range g.ServGetData.CollectionSettings {
+					keySetting = append(keySetting, key)
+				}
 			}
 
+			// if e := g.ServGrabber.Grab(nil); e != nil {
+			// 	g.ErrorNotes = fmt.Sprintf("[%s] Grab Failed %s, repeat after %s :%s", g.Name, g.Url, g.TimeOutIntervalInfo, e)
+			// 	g.Log.AddLog(g.ErrorNotes, "ERROR")
+			// 	g.NextGrabExe = time.Now().Add(g.TimeOutInterval)
+			// 	g.LastGrabStat = false
+			// 	g.ErrorFound += 1
+			// 	continue
+			// } else {
+			// 	g.Log.AddLog(fmt.Sprintf("[%s] Grab Success %s", g.Name, g.Url), "INFO")
+			// }
+
 			if g.LastGrabStat {
-				for key, _ := range g.ServGrabber.Config.DataSettings {
+				for _, key := range keySetting {
+					var e error
 					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination started", g.Name, key), "INFO")
 
 					docs := []toolkit.M{}
-					e := g.ServGrabber.ResultFromHtml(key, &docs)
-					if e != nil {
+					switch g.SourceType {
+					case SourceType_HttpHtml, SourceType_HttpJson:
+						e = g.ServGrabber.ResultFromHtml(key, &docs)
+					case SourceType_DocExcel:
+						e = g.ServGetData.ResultFromDatabase(key, &docs)
+						if e != nil {
+							g.LastGrabStat = false
+						}
+					}
+					if e != nil || !(g.LastGrabStat) {
 						g.ErrorNotes = fmt.Sprintf("[%s-%s] Fetch Result Failed : ", g.Name, key, e)
 						g.Log.AddLog(g.ErrorNotes, "ERROR")
-						continue
 					}
 
 					e = g.DestDbox[key].IConnection.Connect()
 					if e != nil {
 						g.ErrorNotes = fmt.Sprintf("[%s-%s] Connect to destination failed [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e)
 						g.Log.AddLog(g.ErrorNotes, "ERROR")
-						continue
 					}
 
 					var q dbox.IQuery
@@ -142,6 +178,10 @@ func (g *GrabService) execService() {
 							"data": doc,
 						})
 
+						if g.DestDbox[key].Desttype == "mongo" {
+							delete(doc, "_id")
+						}
+
 						if e != nil {
 							g.ErrorNotes = fmt.Sprintf("[%s-%s] Unable to insert [%s-%s]:%s", g.Name, key, g.DestDbox[key].Desttype, g.DestDbox[key].IConnection.Info().Host, e)
 							g.Log.AddLog(g.ErrorNotes, "ERROR")
@@ -157,14 +197,20 @@ func (g *GrabService) execService() {
 
 					g.Log.AddLog(fmt.Sprintf("[%s-%s] Fetch Data to destination finished with %d record fetch", g.Name, key, xN), "INFO")
 
-					//ADD History
-					recfile := g.AddRecHistory(docs)
-					historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
-						Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", recfile)
-					if g.LastGrabStat {
-						historyservice.Set("grabstatus", "SUCCESS")
+					if g.HistoryPath != "" && g.HistoryRecPath != "" {
+						recfile := g.AddRecHistory(key, docs)
+						historyservice := toolkit.M{}.Set("datasettingname", key).Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
+							Set("rowsaved", iN).Set("note", g.ErrorNotes).Set("grabstatus", "SUCCESS").Set("recfile", recfile)
+						if !(g.LastGrabStat) {
+							historyservice.Set("grabstatus", "FAILED")
+						}
+						g.AddHistory(historyservice)
 					}
-
+				}
+			} else {
+				if g.HistoryPath != "" {
+					historyservice := toolkit.M{}.Set("datasettingname", "-").Set("grabdate", g.LastGrabExe).Set("rowgrabbed", g.RowGrabbed).
+						Set("rowsaved", 0).Set("note", g.ErrorNotes).Set("grabstatus", "FAILED").Set("recfile", "")
 					g.AddHistory(historyservice)
 				}
 			}
@@ -172,9 +218,9 @@ func (g *GrabService) execService() {
 	}(g)
 }
 
-func (g *GrabService) AddRecHistory(docs []toolkit.M) string {
+func (g *GrabService) AddRecHistory(key string, docs []toolkit.M) string {
 	var config = map[string]interface{}{"useheader": true, "delimiter": ",", "newfile": true}
-	file := fmt.Sprintf("%s%s-%s.csv", g.HistoryRecPath, g.Name, cast.Date2String(time.Now(), "YYYYMMddHHmmss"))
+	file := fmt.Sprintf("%s%s.%s-%s.csv", g.HistoryRecPath, g.Name, key, cast.Date2String(time.Now(), "YYYYMMddHHmmss"))
 	ci := &dbox.ConnectionInfo{file, "", "", "", config}
 	c, e := dbox.NewConnection("csv", ci)
 	if e != nil {
@@ -295,11 +341,12 @@ func (g *GrabService) validateService() (bool, error) {
 		return false, errors.New("Name Not Found")
 	}
 
-	if g.SourceType != SourceType_Http {
-		return false, errors.New("Source Type Not Set")
-	}
+	// fmt.Println("\n TEST LINE 346", g.SourceType)
+	// if g.SourceType == "" {
+	// 	return false, errors.New("Source Type Not Set")
+	// }
 
-	if g.Url == "" {
+	if g.Url == "" && (g.SourceType == SourceType_HttpHtml || g.SourceType == SourceType_HttpJson) {
 		return false, errors.New("Url Not Found")
 	}
 

@@ -6,6 +6,8 @@ var Config = {
     isSnapShot: ko.observable(true),
     isViewData:ko.observable(false),
     Data:ko.observableArray([]),
+    isAllertError: ko.observable(false),
+    message: ko.observable()
 }
 var ViewData = {
     Processing:ko.observable(false),
@@ -23,6 +25,10 @@ var ViewData = {
     </div>
 </div>
 <div data-bind="with:Config">
+    <div data-bind="visible:isAllertError()" class="alert alert-danger">
+        <a href="#" class="close" data-bind="click:CloseErrorAlert" aria-label="close">&times;</a>
+        <strong>Error!</strong> <span data-bind="text: message"></span>
+    </div>
     <div class="row">
         <div class="col-md-12">
             <div data-bind="visible:isSnapShot()" id="grid"></div>
@@ -42,6 +48,7 @@ var ViewData = {
 </div>
 
 <div id="details"></div>
+
 <style>
 .k-grid-norecords-template{
     border: none;
@@ -74,19 +81,17 @@ var ViewData = {
 }
 </style>
 <script id="command-template" type="text/x-kendo-template">
-    <a class="k-button k-grid-start btn btn-info" id='service-#:data.nameid#'>
-        #= data.status == "STOP" ? "Start" : "Stop" #
-    </a>
+<a class="k-button k-grid-start btn btn-info" id='service-#:data.nameid#'>
+    #= data.status == "STOP" ? "Start" : "Stop" #
+</a>
 </script>
 
 <script id="status-history-template" type="text/x-kendo-template">
-    <i class='#= data.grabstatus == 'SUCCESS' ? "fa fa-check fa-2x success" : "fa fa-times fa-2x failed" #'></i>
+<i class='#= data.grabstatus == 'SUCCESS' ? "fa fa-check fa-2x success" : "fa fa-times fa-2x failed" #'></i>
 </script>
 
 <script type="text/x-kendo-template" id="log-template">
     #= logs #
-    
-    
 </script>
 
 <script>
@@ -128,6 +133,18 @@ $.ajax({
 
 var localDataSources = new kendo.data.DataSource({
     data: localdata,
+    schema: {
+        model: {
+            fields: {
+                nameid: {type: "string"},
+                url: {type: "string"},
+                lastGrab: { type: "date" },
+                nextGrab: {type: "date"},
+                rowsaved: {type: "number"},
+                notehistory: {type: "string"}
+            }
+        }
+    },
     pageSize: 10
 });
 
@@ -135,18 +152,32 @@ var localDataSources = new kendo.data.DataSource({
 var commonSettings = {
     dataSource: localDataSources,
     sortable: true,
+    filterable: {
+        extra: false,
+        operators: {
+            string: {
+                startswith: "Starts with",
+                eq: "Is equal to",
+                neq: "Is not equal to"
+            }
+        }
+    },
     pageable: {/* refresh: true, */pageSizes: true,buttonCount: 5},
     columns: [
     {template: kendo.template($("#command-template").html()),width: 80}, 
-    {field: "status",title: "STATUS",width: 60}, 
+    {field: "status",title: "STATUS", filterable: false, width: 60}, 
     {field: "nameid",title: "NAME ID",width: 100}, 
     {field: "url",title: "SOURCE",}, 
-    {field: "grabinterval",title: "INTERVAL",width: 85}, 
-    {field: "lastGrab",title: "LAST GRAB",width: 120}, 
-    {field: "nextGrab",title: "NEXT GRAB",width: 120}, 
-    {field: "grabStat",title: "GRAB STAT",width: 70}, 
-    {field: "note",title: "NOTE", encoded: false}, 
-    {field: "history",title: "History",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.History(\"#:nameid#\")'><span>History</span></button>"}
+    {field: "grabinterval",title: "INTERVAL",filterable: false, width: 85}, 
+    {field: "lastGrab",title: "LAST GRAB",filterable: {
+        ui: "datetimepicker"
+    },title: "START",format: "{0:yyyy/MM/dd HH:mm tt}",width: 120}, 
+    {field: "nextGrab",title: "NEXT GRAB",filterable: {
+        ui: "datetimepicker"
+    },title: "START",format: "{0:yyyy/MM/dd HH:mm tt}",width: 120}, 
+    {field: "grabStat",title: "GRAB STAT",filterable: false, width: 70}, 
+    {field: "note",title: "NOTE", encoded: false, filterable: false}, 
+    {field: "history",title: "History",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.History(\"#:nameid#\")'><span>History</span></button>", filterable: false}
     ]
 }
 
@@ -198,10 +229,21 @@ function startService(nameid, uid) {
         type: "POST",
         data: JSON.stringify(obj),
         success: function(data) {
-            console.log(data);
+            if (jQuery.type(data) === "string"){
+                $("#service-"+nameid).trigger("click", function(e) {
+                    stopService(nameid, 0)
+                });
+                Config.isAllertError(true)
+                Config.message(data);
+                // alert("ERROR OCCURRED:\n"+data)
+            } else if (data == false) {
+                alert(data + ": something happen with start service")
+            }
+            // console.log(data);
         },
-        error: function(e) {
-            console.log(e);
+        error: function(jqXHR) {
+            alert(jqXHR.responseText)
+            // console.log(e);
         }
     });
 }
@@ -220,8 +262,8 @@ $("#grid").on("click", ".k-grid-start", function(e) {
         data.set("status", "STOP");
         curBtn.text('Start');
         stopService(data.nameid, data.uid);
-        }
-    });
+    }
+});
 
 
 function stopService(nameid, uid) {
@@ -233,10 +275,14 @@ function stopService(nameid, uid) {
         type: "POST",
         data: JSON.stringify(obj),
         success: function(data) {
-            console.log(data)
+            if (data == false) {
+                alert(data + ": something happen with stop service")
+            }
+            // console.log(data)
         },
-        error: function(e) {
-            console.log(e);
+        error: function(jqXHR) {
+            alert(jqXHR.responseText)
+            // console.log(e);
         }
     });
 }
@@ -258,6 +304,12 @@ function checkStat(nameid, interval, uid, index) {
         type: "POST",
         data: JSON.stringify(obj),
         success: function(data) {
+            if (jQuery.type(data) === "string"){
+                $("#service-"+nameid).trigger("click", function(e) {
+                    stopService(nameid, 0)
+                });
+                alert(data)
+            }
             var startdate = (data.note.startDate == undefined) ? 0 : data.note.startDate
             var grabcount = (data.note.grabCount == undefined) ? 0 : data.note.grabCount
             var rowgrab = (data.note.rowGrabbed == undefined) ? 0 : data.note.rowGrabbed
@@ -277,8 +329,8 @@ function checkStat(nameid, interval, uid, index) {
                 }
             }
         },
-        error: function(e) {
-            console.log(e)
+        error: function(jqXHR) {
+            alert(jqXHR.responseText)
         }
     });
 }
@@ -321,12 +373,33 @@ Config.History = function(nameid){
             ViewData.HistoryData(data);
             var dataHistory = new kendo.data.DataSource({
                 data: data,
+                schema: {
+                    model: {
+                        fields: {
+                            datasettingname: {type: "string"},
+                            grabdate: { type: "date" },
+                            rowgrabbed: {type: "number"},
+                            rowsaved: {type: "number"},
+                            notehistory: {type: "string"}
+                        }
+                    }
+                },
                 pageSize: 10
             });
 
             var dsGridHistory = $("#grid-history").kendoGrid({
                 dataSource: dataHistory,
                 noRecords: true,
+                filterable: {
+                    extra: false,
+                    operators: {
+                        string: {
+                            startswith: "Starts with",
+                            eq: "Is equal to",
+                            neq: "Is not equal to"
+                        }
+                    }
+                },
                 messages: {
                     noRecords: "<span style='font-size:14px'><strong>Upss..no history found!</strong></span>"
                 },
@@ -334,23 +407,26 @@ Config.History = function(nameid){
                 dataBound: onHistoryDataBound,
                 pageable: {pageSizes: true},
                 columns: [
-                {field: "id",title: "ID", width: 50}, 
-                {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), width: 60},
+                {field: "id",title: "ID", filterable: false, width: 50}, 
+                {field: "grabstatus",title: "STATUS", attributes:{ class:"align-center" }, template: kendo.template($("#status-history-template").html()), filterable: false, width: 60},
                 {field: "datasettingname",title: "DATA NAME"}, 
-                {field: "grabdate",title: "START"},
+                {field: "grabdate",filterable: {
+                    ui: "datetimepicker"
+                },title: "START",format: "{0:yyyy/MM/dd HH:mm tt}"},
                 {field: "rowgrabbed",title: "GRAB COUNT"},
                 {field: "rowsaved",title: "ROW SAVE"},
                 {field: "notehistory",title: "NOTE"},
-                {field: "viewBtn",title: "&nbsp;",width:100,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.ViewData(\"#:datasettingname#\",\"#:id#\")'><span>View Data</span></button>"},
-                {field: "logBtn",title: "&nbsp;",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.Log(\"#:grabdate#\",\"#:nameid#\")'><span>Log</span></button>"}
+                {field: "viewBtn",title: "&nbsp;",width:100,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.ViewData(\"#:datasettingname#\",\"#:id#\")'><span>View Data</span></button>", filterable: false},
+                {field: "logBtn",title: "&nbsp;",width:80,attributes:{ class:"align-center" },template:"<button class='btn btn-default' onclick='Config.Log(\"#:kendo.toString(grabdate, 'yyyy/MM/dd HH:mm:ss')#\",\"#:nameid#\")'><span>Log</span></button>", filterable: false}
                 ]
             });
 
-            var gridHs = $("#grid-history").data("kendoGrid");
+        var gridHs = dsGridHistory.data("kendoGrid");
             gridHs.setDataSource(dataHistory); // sets to a blank dataSource
         },
-        error: function(e) {
-            console.log(e);
+        error: function(jqXHR) {
+            alert(jqXHR.responseText)
+            // console.log(e);
         }
     });
 }
@@ -362,11 +438,12 @@ ViewData.Prepare = function(datasettingname){
     var columnsettings = data.columnsettings;
     var series = [];
     for(var i in columnsettings){
+        var field = columnsettings[i].alias.replace(/ /g, "_");
         var s = {
-            field:columnsettings[i].alias,//'col'+i,
+            field:field,
             title:columnsettings[i].alias
         }
-        series.push(s)
+        series.push(s);
     }
     $("#DataResult").html("");
     $("#DataResult").kendoGrid({
@@ -398,8 +475,9 @@ Config.ViewData = function(datasettingname,id){
     }else{
         obj.kendoWindow({
             title: "View Data",
+            actions: [ "Maximize","Close" ],
             modal: true,
-            resizable: false,
+            resizable: true,
             width: 600,
             heigt:350,
         });
@@ -415,6 +493,12 @@ Config.ViewData = function(datasettingname,id){
         useheader:true,
     }
     ajaxPost(url,parm,function(res){
+        for(var i in res){
+            for(var x in res[i]){
+                var field = x.replace(/ /g, "_");
+                res[i][field] = res[i][x];
+            }
+        }
         ViewData.Processing(false);
         ViewData.Fetch(res);
     },
@@ -431,6 +515,10 @@ Config.GoBack = function(){
     $.each(grid.dataSource.data(), function(key, val) {
         checkStat(val.nameid, val.grabinterval, val.uid, key);
     });
+}
+
+Config.CloseErrorAlert = function(){
+    Config.isAllertError(false)
 }
 
 Config.Log = function(date,nameid){
@@ -453,11 +541,11 @@ Config.Log = function(date,nameid){
             }
             
             var wnd  = $("#details").kendoWindow({
-                    title: "LOG DETAIL",
-                    modal: true,
-                    visible: false,
-                    resizable: false,
-                    width: 1024
+                title: "LOG DETAIL",
+                modal: true,
+                visible: false,
+                resizable: false,
+                width: 1024
             }).data("kendoWindow");
             
             detailsTemplate = kendo.template($("#log-template").html());
