@@ -19,7 +19,7 @@ import (
 
 type GrabModule struct {
 	nameId, lastGrabTime string
-	gi, ti               time.Time
+	// gi, ti               time.Time
 }
 
 type StatService struct {
@@ -33,9 +33,9 @@ var (
 		return d + "/../"
 	}()
 
-	filename       = wd + "data\\Config\\config.json"
+	filename       = wd + "data\\Config\\config_backup.json"
 	historyPath    = wd + "data\\history\\"
-	historyRecPath = wd + "\\data\\HistoryRec\\"
+	historyRecPath = wd + "data\\HistoryRec\\"
 	grabs          *sdt.GrabService
 	grabber        *sdt.Grabber
 )
@@ -45,29 +45,47 @@ func NewGrabService() *GrabModule {
 	return g
 }
 
-func Process(datas []interface{}) (string, bool) {
+func Process(datas []interface{}) (error, bool) {
 	var (
-		status    string
-		isServRun bool
+		e error
+		// isServRun bool
 	)
 	for _, v := range datas {
-		vToMap, _ := toolkit.ToM(v)
-		grabs, _ = GrabConfig(vToMap)
+		vToMap, e := toolkit.ToM(v)
+		if e != nil {
+			return e, false
+		}
+
+		if vToMap["sourcetype"].(string) == "SourceType_Http" {
+			grabs, e = GrabHtmlConfig(vToMap)
+			if e != nil {
+				return e, false
+			}
+		} else if vToMap["sourcetype"].(string) == "SourceType_DocExcel" {
+			grabs, e = GrabDocConfig(vToMap)
+			if e != nil {
+				return e, false
+			}
+		}
+
 	}
 
-	status, isServRun = StartService(grabs)
+	e, isServRun := StartService(grabs)
+	if e != nil {
+		return e, false
+	}
 
-	return status, isServRun
+	return nil, isServRun
 }
 
-func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
+func GrabHtmlConfig(data toolkit.M) (*sdt.GrabService, error) {
 	var e error
 	var gi, ti time.Duration
 	xGrabService := sdt.NewGrabService()
 	xGrabService.Name = data["nameid"].(string) //"irondcecom"
 	xGrabService.Url = data["url"].(string)     //"http://www.dce.com.cn/PublicWeb/MainServlet"
 
-	xGrabService.SourceType = sdt.SourceType_Http
+	xGrabService.SourceType = sdt.SourceType_HttpHtml
 
 	grabintervalToInt := toolkit.ToInt(data["grabinterval"])
 	timeintervalToInt := toolkit.ToInt(data["timeoutinterval"])
@@ -92,7 +110,10 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 	if data["calltype"].(string) == "POST" {
 		dataurl := toolkit.M{}
 		for _, grabconf := range data["grabconf"].(map[string]interface{}) {
-			grabDataConf, _ := toolkit.ToM(grabconf)
+			grabDataConf, e := toolkit.ToM(grabconf)
+			if e != nil {
+				return nil, e
+			}
 			for key, subGrabDataConf := range grabDataConf {
 				if reflect.ValueOf(subGrabDataConf).Kind() == reflect.Float64 {
 					i := toolkit.ToInt(subGrabDataConf)
@@ -107,7 +128,10 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		grabConfig.SetFormValues(dataurl)
 	}
 
-	grabDataConf, _ := toolkit.ToM(data["grabconf"])
+	grabDataConf, e := toolkit.ToM(data["grabconf"])
+	if e != nil {
+		return nil, e
+	}
 
 	isAuthType := grabDataConf.Has("authtype")
 	if isAuthType {
@@ -123,14 +147,17 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 
 	xGrabService.ServGrabber = sdt.NewGrabber(xGrabService.Url, data["calltype"].(string), &grabConfig)
 
-	logconfToMap, _ := toolkit.ToM(data["logconf"])
+	logconfToMap, e := toolkit.ToM(data["logconf"])
+	if e != nil {
+		return nil, e
+	}
 	logpath := logconfToMap["logpath"].(string)           //"E:\\data\\vale\\log"
 	filename := logconfToMap["filename"].(string) + "-%s" //"LOG-GRABDCETEST"
 	filepattern := logconfToMap["filepattern"].(string)   //"20060102"
 
 	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
 	if e != nil {
-		return nil, e.Error()
+		return nil, e
 	}
 
 	xGrabService.Log = logconf
@@ -140,21 +167,27 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 
 	tempDataSetting := sdt.DataSetting{}
 	tempDestInfo := sdt.DestInfo{}
-	orCondition := []interface{}{}
-	var condition string
+	// isCondition := []interface{}{}
+	tempFilterCond := toolkit.M{}
+	// var condition string
 
 	for _, dataSet := range data["datasettings"].([]interface{}) {
 		dataToMap, _ := toolkit.ToM(dataSet)
 		tempDataSetting.RowSelector = dataToMap["rowselector"].(string)
 
 		for _, columnSet := range dataToMap["columnsettings"].([]interface{}) {
-			columnToMap, _ := toolkit.ToM(columnSet)
+			columnToMap, e := toolkit.ToM(columnSet)
+			if e != nil {
+				return nil, e
+			}
 			i := toolkit.ToInt(columnToMap["index"])
 			tempDataSetting.Column(i, &sdt.GrabColumn{Alias: columnToMap["alias"].(string), Selector: columnToMap["selector"].(string)})
 		}
 
-		if data["calltype"].(string) == "POST" {
+		/*if data["calltype"].(string) == "POST" {
 			// orCondition := []interface{}{}
+			isRowdeletecond := dataToMap.Has("rowdeletecond")
+			fmt.Println("isRowdeletecond>", isRowdeletecond)
 			if hasRowdeletecond := dataToMap.Has("rowdeletecond"); hasRowdeletecond {
 				for key, rowDeleteMap := range dataToMap["rowdeletecond"].(map[string]interface{}) {
 					if key == "$or" || key == "$and" {
@@ -170,11 +203,33 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 			// tempDataSetting.RowDeleteCond = toolkit.M{}.Set(condition, orCondition)
 			tempFilterCond := toolkit.M{}.Set(condition, orCondition)
 			tempDataSetting.SetFilterCond(tempFilterCond)
+		}*/
+
+		if hasRowdeletecond := dataToMap.Has("rowdeletecond"); hasRowdeletecond {
+			rowToM, e := toolkit.ToM(dataToMap["rowdeletecond"])
+			if e != nil {
+				return nil, e
+			}
+			tempFilterCond, e = toolkit.ToM(rowToM.Get("filtercond", nil))
+			tempDataSetting.SetFilterCond(tempFilterCond)
+		}
+
+		if hasRowincludecond := dataToMap.Has("rowincludecond"); hasRowincludecond {
+			rowToM, e := toolkit.ToM(dataToMap["rowincludecond"])
+			if e != nil {
+				return nil, e
+			}
+
+			tempFilterCond, e = toolkit.ToM(rowToM.Get("filtercond", nil))
+			tempDataSetting.SetFilterCond(tempFilterCond)
 		}
 
 		xGrabService.ServGrabber.DataSettings[dataToMap["name"].(string)] = &tempDataSetting //DATA01 use name in datasettings
 
-		connToMap, _ := toolkit.ToM(dataToMap["connectioninfo"])
+		connToMap, e := toolkit.ToM(dataToMap["connectioninfo"])
+		if e != nil {
+			return nil, e
+		}
 		var db, usr, pwd string
 
 		if hasDb := connToMap.Has("database"); !hasDb {
@@ -205,7 +260,7 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		} else {
 			settingToMap, e := toolkit.ToM(connToMap["settings"])
 			if e != nil {
-				return nil, e.Error()
+				return nil, e
 			}
 			ci.Settings = settingToMap //toolkit.M{}.Set("useheader", settingToMap["useheader"].(bool)).Set("delimiter", settingToMap["delimiter"])
 		}
@@ -220,7 +275,7 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 
 		tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
 		if e != nil {
-			return nil, e.Error()
+			return nil, e
 		}
 
 		xGrabService.DestDbox[dataToMap["name"].(string)] = &tempDestInfo
@@ -231,36 +286,174 @@ func GrabConfig(data toolkit.M) (*sdt.GrabService, string) {
 		//===================================================================
 	}
 
-	return xGrabService, ""
+	return xGrabService, nil
 }
 
-func StartService(grabConfig *sdt.GrabService) (string, bool) {
+func GrabDocConfig(data toolkit.M) (*sdt.GrabService, error) {
+	var e error
+	var gi, ti time.Duration
+
+	GrabService := sdt.NewGrabService()
+	GrabService.Name = data["nameid"].(string) //"iopriceindices"
+	GrabService.SourceType = sdt.SourceType_DocExcel
+
+	grabintervalToInt := toolkit.ToInt(data["grabinterval"])
+	timeintervalToInt := toolkit.ToInt(data["timeoutinterval"])
+	if data["intervaltype"].(string) == "seconds" {
+		gi = time.Duration(grabintervalToInt) * time.Second
+		ti = time.Duration(timeintervalToInt) * time.Second
+	} else if data["intervaltype"].(string) == "minutes" {
+		gi = time.Duration(grabintervalToInt) * time.Minute
+		ti = time.Duration(timeintervalToInt) * time.Minute
+	} else if data["intervaltype"].(string) == "hours" {
+		gi = time.Duration(grabintervalToInt) * time.Hour
+		ti = time.Duration(timeintervalToInt) * time.Hour
+	}
+	GrabService.GrabInterval = gi
+	GrabService.TimeOutInterval = ti //time.Hour, time.Minute, time.Second
+	GrabService.TimeOutIntervalInfo = fmt.Sprintf("%v %s", timeintervalToInt, data["intervaltype"])
+
+	ci := dbox.ConnectionInfo{}
+
+	grabDataConf, e := toolkit.ToM(data["grabconf"])
+	if e != nil {
+		return nil, e
+	}
+	isDoctype := grabDataConf.Has("doctype")
+	if isDoctype {
+		connToMap, e := toolkit.ToM(grabDataConf["connectioninfo"])
+		if e != nil {
+			return nil, e
+		}
+		ci.Host = connToMap["host"].(string) //"E:\\data\\sample\\IO Price Indices.xlsm"
+		if hasSettings := connToMap.Has("settings"); !hasSettings {
+			ci.Settings = nil
+		} else {
+			settingToMap, e := toolkit.ToM(connToMap["settings"])
+			if e != nil {
+				return nil, e
+			}
+			ci.Settings = settingToMap //toolkit.M{}.Set("useheader", settingToMap["useheader"].(bool)).Set("delimiter", settingToMap["delimiter"])
+		}
+		GrabService.ServGetData, e = sdt.NewGetDatabase(ci.Host, grabDataConf["doctype"].(string), &ci)
+	}
+
+	logconfToMap, e := toolkit.ToM(data["logconf"])
+	if e != nil {
+		return nil, e
+	}
+	logpath := logconfToMap["logpath"].(string)           //"E:\\data\\vale\\log"
+	filename := logconfToMap["filename"].(string) + "-%s" //"LOG-LOCALXLSX-%s"
+	filepattern := logconfToMap["filepattern"].(string)   //"20060102"
+
+	logconf, e := toolkit.NewLog(false, true, logpath, filename, filepattern)
+	if e != nil {
+		return nil, e
+	}
+
+	GrabService.Log = logconf
+
+	GrabService.ServGetData.CollectionSettings = make(map[string]*sdt.CollectionSetting)
+	GrabService.DestDbox = make(map[string]*sdt.DestInfo)
+
+	tempDataSetting := sdt.CollectionSetting{}
+	tempDestInfo := sdt.DestInfo{}
+
+	for _, dataSet := range data["datasettings"].([]interface{}) {
+		dataToMap, e := toolkit.ToM(dataSet)
+		if e != nil {
+			return nil, e
+		}
+		tempDataSetting.Collection = dataToMap["rowselector"].(string) //"HIST"
+		for _, columnSet := range dataToMap["columnsettings"].([]interface{}) {
+			columnToMap, e := toolkit.ToM(columnSet)
+			if e != nil {
+				return nil, e
+			}
+			tempDataSetting.SelectColumn = append(tempDataSetting.SelectColumn, &sdt.GrabColumn{Alias: columnToMap["alias"].(string), Selector: columnToMap["selector"].(string)})
+		}
+		GrabService.ServGetData.CollectionSettings[dataToMap["name"].(string)] = &tempDataSetting //DATA01 use name in datasettings
+
+		// fmt.Println("doctype>", grabDataConf["doctype"])
+		connToMap, e := toolkit.ToM(dataToMap["connectioninfo"])
+		if e != nil {
+			return nil, e
+		}
+		var db, usr, pwd string
+
+		if hasDb := connToMap.Has("database"); !hasDb {
+			db = ""
+		} else {
+			db = connToMap["database"].(string)
+		}
+		if hasUser := connToMap.Has("username"); !hasUser {
+			usr = ""
+		} else {
+			usr = connToMap["username"].(string)
+		}
+
+		if hasPwd := connToMap.Has("password"); !hasPwd {
+			pwd = ""
+		} else {
+			pwd = connToMap["username"].(string)
+		}
+		ci = dbox.ConnectionInfo{}
+		ci.Host = connToMap["host"].(string) //"localhost:27017"
+		ci.Database = db                     //"valegrab"
+		ci.UserName = usr                    //""
+		ci.Password = pwd                    //""
+
+		//tempDestInfo.Collection = "iopriceindices"
+		if hasCollection := connToMap.Has("collection"); !hasCollection {
+			tempDestInfo.Collection = ""
+		} else {
+			tempDestInfo.Collection = connToMap["collection"].(string)
+		}
+		tempDestInfo.Desttype = dataToMap["desttype"].(string) //"mongo"
+
+		tempDestInfo.IConnection, e = dbox.NewConnection(tempDestInfo.Desttype, &ci)
+		if e != nil {
+			return nil, e
+		}
+
+		GrabService.DestDbox[dataToMap["name"].(string)] = &tempDestInfo
+		//=History===========================================================
+		GrabService.HistoryPath = historyPath       //"E:\\data\\vale\\history\\"
+		GrabService.HistoryRecPath = historyRecPath //"E:\\data\\vale\\historyrec\\"
+		//===================================================================
+	}
+
+	return GrabService, e
+}
+
+func StartService(grabConfig *sdt.GrabService) (error, bool) {
 
 	e := grabConfig.StartService()
 
 	if e != nil {
-		return e.Error(), grabConfig.ServiceRunningStat
+		return e, grabConfig.ServiceRunningStat
 	} else {
 		if grabConfig.ServiceRunningStat {
-			s := Insertstatservice(grabConfig.ServiceRunningStat, grabConfig.Name)
+			//s := Insertstatservice(grabConfig.ServiceRunningStat, grabConfig.Name)
 
 			ks := new(knot.Server)
-			ks.Log().Info(fmt.Sprintf("==Start '%s' grab service==", s.(*StatService).name))
-			knot.SharedObject().Set(s.(*StatService).name, grabConfig)
-			return s.(*StatService).name, s.(*StatService).status
+			ks.Log().Info(fmt.Sprintf("==Start '%s' grab service==", grabConfig.Name))
+			knot.SharedObject().Set(grabConfig.Name, grabConfig)
+
+			return nil, grabConfig.ServiceRunningStat //s.(*StatService).status
 		}
 
-		err, _ := StopService(grabConfig)
-		if err != "" {
-			return err, grabConfig.ServiceRunningStat
+		err, isStopService := StopService(grabConfig)
+		if err != nil {
+			return err, isStopService
 		}
 	}
 
-	return grabConfig.Name, grabConfig.ServiceRunningStat
+	return nil, grabConfig.ServiceRunningStat
 
 }
 
-func Insertstatservice(isServiceRun bool, nameid string) interface{} {
+/*func Insertstatservice(isServiceRun bool, nameid string) interface{} {
 	var addserv interface{}
 	if addserv == nil {
 		addserv = &StatService{name: nameid, status: isServiceRun}
@@ -268,29 +461,42 @@ func Insertstatservice(isServiceRun bool, nameid string) interface{} {
 
 	}
 	return addserv
-}
+}*/
 
-func StopProcess(datas []interface{}) (string, bool) {
+func StopProcess(datas []interface{}) (error, bool) {
 	var (
-		name       string
+		e          error
 		isStopServ bool
 	)
 	for _, v := range datas {
 		vToMap, _ := toolkit.ToM(v)
-		name, isStopServ = StopService(knot.SharedObject().Get(vToMap["nameid"].(string)).(*sdt.GrabService))
+		if knot.SharedObject().Get(vToMap["nameid"].(string)) != nil {
+			e, isStopServ = StopService(knot.SharedObject().Get(vToMap["nameid"].(string)).(*sdt.GrabService))
+			if e != nil {
+				return e, false
+			}
+		} else {
+			return e, false
+		}
 	}
 
-	return name, isStopServ
+	if !isStopServ {
+		isStopServ = true
+	} else {
+		isStopServ = false
+	}
+
+	return nil, isStopServ
 }
 
-func StopService(grabConfig *sdt.GrabService) (string, bool) {
+func StopService(grabConfig *sdt.GrabService) (error, bool) {
 	e := grabConfig.StopService()
 	if e != nil {
-		return e.Error(), grabConfig.ServiceRunningStat
+		return e, grabConfig.ServiceRunningStat
 	}
 	ks := new(knot.Server)
 	ks.Log().Info(fmt.Sprintf("==Stop '%s' grab service==", grabConfig.Name))
-	return grabConfig.Name, grabConfig.ServiceRunningStat
+	return nil, grabConfig.ServiceRunningStat
 }
 
 func (g *GrabModule) CheckStat(datas []interface{}) interface{} {
@@ -301,7 +507,10 @@ func (g *GrabModule) CheckStat(datas []interface{}) interface{} {
 	)
 	var summaryNotes = toolkit.M{} //map[string]interface{}{}
 	for _, v := range datas {
-		vToMap, _ := toolkit.ToM(v)
+		vToMap, e := toolkit.ToM(v)
+		if e != nil {
+			return e.Error()
+		}
 
 		if knot.SharedObject().Get(vToMap["nameid"].(string)) != nil {
 			i := knot.SharedObject().Get(vToMap["nameid"].(string)).(*sdt.GrabService)

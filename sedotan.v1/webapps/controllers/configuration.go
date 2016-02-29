@@ -25,7 +25,11 @@ type ConfigurationController struct {
 
 func (a *ConfigurationController) Default(k *knot.WebContext) interface{} {
 	k.Config.OutputType = knot.OutputTemplate
-	return ""
+	data := tk.M{}
+	d, _ := os.Getwd()
+	d = strings.Replace(d, "\\cli", "", -1)
+	data.Set("data_dir", d+"\\data\\Output\\")
+	return data
 }
 
 func (a *ConfigurationController) P(k *knot.WebContext) interface{} {
